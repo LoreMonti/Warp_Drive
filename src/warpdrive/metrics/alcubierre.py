@@ -80,6 +80,8 @@ class AlcubierreMetric(WarpMetric):
         Negative ahead of the ship (space contracting) and positive
         behind it (space expanding). This is the entire mechanism of the
         drive.
+
+        Checked against the derivation in `symbolic.py`.
         """
 
         x = np.asarray(x, dtype=float)
@@ -101,6 +103,10 @@ class AlcubierreMetric(WarpMetric):
         weak energy condition, and it vanishes on the axis: the exotic
         matter forms a torus around the direction of motion. That torus
         is the physical reason concept ships are drawn with rings.
+
+        This is the fast path. The authority for the expression, the
+        prefactor included, is the derivation in `symbolic.py`, which
+        `tests/test_symbolic.py` checks it against.
         """
 
         x = np.asarray(x, dtype=float)

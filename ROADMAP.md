@@ -22,16 +22,20 @@ the test suite; unchecked ones are planned.
 - [x] **Visualisation** — shape function, expansion surface, exotic-matter
       torus, 3D shell with an IXS-style hull, and the flyby animation.
 - [x] **Symbolic derivation** — `symbolic.py` builds the Einstein tensor of the
-      ansatz with sympy and reproduces the hand-written energy density and
-      expansion exactly, prefactor included. Optional `[symbolic]` extra, so the
-      runtime stays numpy + matplotlib.
+      ansatz with sympy and reproduces the published energy density and
+      expansion exactly, prefactor included. It is now the source of truth for
+      the physics: the expressions in `metrics/` are the fast numpy path,
+      written by reading the derivation, and a test holds the two together.
 - [x] **Packaging and tests** — `src` layout, CLI driver, 36 tests pinning the
       invariants a sign error would not crash on.
 
 ## 1. Van Den Broeck's two-scale bubble
 
 - [ ] $B(r_s)$ volume profile in `shapes.py`
-- [ ] `BroeckMetric` overriding `conformal_factor`
+- [ ] `BroeckMetric` overriding `conformal_factor`, written from the derivation
+      rather than transcribed from the 1999 paper
+- [ ] Cross-check the result against the published expression, as an
+      independent third opinion
 - [ ] Expansion and energy density from `symbolic.py`, run with
       `conformal=True`
 - [ ] Energy scaling plot: exotic mass vs neck radius

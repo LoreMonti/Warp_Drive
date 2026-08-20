@@ -1,28 +1,24 @@
 # ==========================================================
 # Tests for the symbolic derivation of the stress-energy tensor
 #
-# These close the loop on the numerical code: the expressions in
-# `metrics/alcubierre.py` were written by hand from the 1994 paper, and
-# nothing else in the suite constrains their overall prefactor. Deriving
-# the Einstein tensor from the metric and comparing is what pins it.
+# The derivation in `symbolic.py` is the source of truth for the physics;
+# the expressions in `metrics/` are the fast numpy path. These tests are
+# what holds the two together, and they are the only place in the suite
+# that constrains the overall prefactor: everything else pins signs,
+# symmetries and scaling, none of which fix a constant.
 #
 # Author: Lorenzo Monti
 # ==========================================================
 
 import math
 
-import numpy as np
 import pytest
+import sympy as sp
 
-sp = pytest.importorskip("sympy", reason="needs the [symbolic] extra")
-
-from warpdrive import AlcubierreMetric                       # noqa: E402
-from warpdrive.constants import C_LIGHT, G                   # noqa: E402
-from warpdrive.shapes import (                                # noqa: E402
-    tanh_top_hat,
-    tanh_top_hat_derivative,
-)
-from warpdrive.symbolic import (                             # noqa: E402
+from warpdrive import AlcubierreMetric
+from warpdrive.constants import C_LIGHT, G
+from warpdrive.shapes import tanh_top_hat, tanh_top_hat_derivative
+from warpdrive.symbolic import (
     alcubierre_expansion_reference,
     alcubierre_reference,
     check_inverse,

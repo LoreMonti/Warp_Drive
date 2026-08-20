@@ -30,9 +30,10 @@ cd Warp_Drive
 pip install -e ".[dev]"
 ```
 
-Runtime dependencies are `numpy` and `matplotlib` only. The `dev` extra adds
-`pytest`; a separate `symbolic` extra adds `sympy`, used by `symbolic.py` and
-by nothing at runtime — `warpdrive` imports fine without it.
+Dependencies are `numpy`, `matplotlib` and `sympy`; the `dev` extra adds
+`pytest`. Nothing at runtime imports sympy — it carries the derivation the rest
+of the package is checked against, so it is a hard dependency rather than an
+optional extra.
 
 ## Usage
 
@@ -67,7 +68,7 @@ Warp_Drive/
 │   ├── integrators.py         # RK4 vectorised over an ensemble
 │   ├── tracers.py             # Eulerian congruence dragged by the bubble
 │   ├── diagnostics.py         # travel times, energy budget, horizon
-│   ├── symbolic.py            # Einstein tensor via sympy   [optional extra]
+│   ├── symbolic.py            # Einstein tensor: source of truth
 │   ├── geodesics.py           # null-geodesic ray tracing        [roadmap 2]
 │   ├── metrics/
 │   │   ├── base.py            # WarpMetric: the 3+1 interface
@@ -106,23 +107,46 @@ pytest
 
 Errors in general relativity rarely crash: a wrong sign or a missing factor of
 $c$ produces plausible numbers. The suite pins the invariants that would catch
-that — $f(0) = 1$, $d\tau/dt = 1$ at any $v_s$, $\varepsilon \leq 0$
-everywhere, $\varepsilon = 0$ on the axis, $\theta$ antisymmetric under
-$x \to -x$, superluminal motion in the *exterior* rejected as spacelike,
+that — $f(0) = 1$, $d\tau/dt = 1$ at any $v_s$, $\varepsilon \leq 0$ everywhere,
+$\varepsilon = 0$ on the axis, $\theta$ antisymmetric under $x \to -x$,
+superluminal motion in the *exterior* rejected as spacelike,
 $E \propto v_s^2 R^2 \sigma$, and the horizon solver agreeing with the analytic
-condition $f = 1 - c/v_s$. The closed-form energy budget is also checked
-against the generic quadrature in the base class, which is the test that keeps
-the interface honest when a second metric is added.
+condition $f = 1 - c/v_s$. The closed-form energy budget is also checked against
+the generic quadrature in the base class, which is the test that keeps the
+interface honest when a second metric is added.
 
-One check goes further. `symbolic.py` builds the Einstein tensor of the ansatz
-from scratch with sympy — Christoffel symbols, Ricci tensor, curvature scalar —
-keeping the full time dependence, and contracts it on the Eulerian normal. The
-result must reproduce the density written by hand from the 1994 paper. It does,
-identically, and the numerical bridge feeds the package's own numpy shape
-functions into the derived structure, which is the only test in the suite that
-constrains the overall $c^4/8\pi G$ prefactor: everything else pins signs,
-symmetries and scaling, none of which fix a constant. Those tests skip cleanly
-when sympy is absent.
+### Where the physics comes from
+
+None of those invariants constrain an overall constant. A density off by a
+factor of two would keep every sign, every symmetry and every scaling law, and
+the suite would stay green.
+
+So the physics is not transcribed from papers. `symbolic.py` builds the
+curvature of the ansatz from scratch with sympy — Christoffel symbols, Ricci
+tensor, curvature scalar, Einstein tensor — keeping the full dependence on $w$,
+and contracts it on the Eulerian normal $n^\mu = (1, b, 0, 0)$. That derivation
+is the source of truth; the expressions in `metrics/` are the fast numpy path,
+written by reading it.
+
+Holding the two together:
+
+| check | result |
+| --- | --- |
+| derived $\varepsilon$ vs the published Alcubierre density | difference exactly `0` |
+| derived $\theta$ vs the published expansion | difference exactly `0` |
+| derived vs `AlcubierreMetric.energy_density`, on a 400x400 grid | agreement to `5e-16` |
+| cost of one derivation | 1.3 s ($B = 1$), 8.8 s (general $B$) |
+| cost of evaluating the grid | 3.3 ms derived, 4.2 ms hand-written |
+
+The numerical bridge feeds the package's own numpy shape functions into the
+symbolically derived structure, so a mismatch can only come from the algebra of
+one side or the other. It is the only test that pins the $c^4/8\pi G$ prefactor.
+
+Both implementations are kept deliberately. The derivation is not the truth
+either — it is a second program, with its own possible mistakes in the ansatz,
+the analytic inverse or the contraction conventions. What counts as evidence is
+that two independent routes agree, and deleting one would delete the evidence
+rather than strengthen it.
 
 ## What the code computes
 

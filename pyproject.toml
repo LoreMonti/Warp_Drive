@@ -21,11 +21,11 @@ classifiers = [
 dependencies = [
     "numpy>=1.24",
     "matplotlib>=3.7",
+    "sympy>=1.12",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest>=7.0"]
-symbolic = ["sympy>=1.12"]
 
 [project.urls]
 Repository = "https://github.com/LoreMonti/Warp_Drive"

@@ -1,9 +1,11 @@
 # ==========================================================
 # Symbolic derivation of the stress-energy tensor
 #
-# Derives the Einstein tensor of the warp bubble ansatz directly, rather
-# than transcribing results from papers, and uses it to check the
-# hand-written expressions in `metrics/`.
+# Derives the Einstein tensor of the warp bubble ansatz directly. This
+# module is the source of truth for the physics of the package: the
+# expressions in `metrics/` are the fast numpy path, written by reading
+# the derivation rather than by transcribing a paper, and a test holds
+# the two together.
 #
 # Coordinates are (w, x, y, z) with w = c t, so every coordinate is a
 # length and every metric component is dimensionless. The shift is then
@@ -19,12 +21,13 @@
 # dx/dw = u, so the metric genuinely depends on w and the time
 # derivatives are kept rather than assumed away.
 #
-# This module needs sympy, which is an optional dependency:
+# The derivation is not the truth either: it is a second implementation,
+# with its own possible mistakes in the ansatz, the analytic inverse or
+# the contraction conventions. What counts as evidence is that two
+# independent routes agree, which is why both are kept.
 #
-#     pip install -e ".[symbolic]"
-#
-# It is deliberately not imported by `warpdrive/__init__.py`, so the
-# runtime stays numpy + matplotlib.
+# Not imported by `warpdrive/__init__.py`: nothing at runtime needs it,
+# it is imported explicitly when the derivation is wanted.
 #
 # Author: Lorenzo Monti
 # ==========================================================
