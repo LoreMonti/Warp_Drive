@@ -4,8 +4,6 @@ A numerical study of the **Alcubierre (1994) warp drive** metric — the geometr
 behind every "IXS Enterprise"-style concept ship, with its two coaxial rings
 wrapped around a central hull.
 
-**[Roadmap](ROADMAP.md)** · **[MIT License](LICENSE)**
-
 The metric, in ADM (3+1) form, is
 
 $$ds^2 = -c^2 dt^2 + \left(dx - v_s f(r_s)\,dt\right)^2 + dy^2 + dz^2$$
