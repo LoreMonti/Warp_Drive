@@ -4,6 +4,8 @@ A numerical study of the **Alcubierre (1994) warp drive** metric — the geometr
 behind every "IXS Enterprise"-style concept ship, with its two coaxial rings
 wrapped around a central hull.
 
+**[Roadmap](ROADMAP.md)** · **[MIT License](LICENSE)**
+
 The metric, in ADM (3+1) form, is
 
 $$ds^2 = -c^2 dt^2 + \left(dx - v_s f(r_s)\,dt\right)^2 + dy^2 + dz^2$$
@@ -25,8 +27,8 @@ expands it behind. Special relativity is never violated, because $v_s$ is a
 ## Install
 
 ```bash
-git clone https://github.com/LoreMonti/Warp_drive.git
-cd Warp_drive
+git clone https://github.com/LoreMonti/Warp_Drive.git
+cd Warp_Drive
 pip install -e ".[dev]"
 ```
 
@@ -55,22 +57,34 @@ print(format_profile(profile_mission(metric)))
 ## Layout
 
 ```
-src/warpdrive/
-├── constants.py       physical constants and unit conversions
-├── shapes.py          radial profiles f(r), and the B(r) of the roadmap
-├── integrators.py     RK4, vectorised over an ensemble of particles
-├── tracers.py         Eulerian congruence dragged by a passing bubble
-├── diagnostics.py     travel times, energy budget, causal structure
-├── metrics/
-│   ├── base.py        WarpMetric: the 3+1 interface
-│   └── alcubierre.py  the 1994 metric
-└── viz/
-    ├── style.py       shared palette
-    ├── figures.py     static figures
-    └── animation.py   flyby animation
-scripts/               command line drivers
-tests/                 pytest suite
+Warp_Drive/
+├── README.md
+├── ROADMAP.md
+├── LICENSE
+├── pyproject.toml
+├── src/warpdrive/
+│   ├── constants.py           # physical constants and unit conversions
+│   ├── shapes.py              # radial profiles f(r), B(r) and derivatives
+│   ├── integrators.py         # RK4 vectorised over an ensemble
+│   ├── tracers.py             # Eulerian congruence dragged by the bubble
+│   ├── diagnostics.py         # travel times, energy budget, horizon
+│   ├── geodesics.py           # null-geodesic ray tracing        [roadmap 1]
+│   ├── metrics/
+│   │   ├── base.py            # WarpMetric: the 3+1 interface
+│   │   ├── alcubierre.py      # the 1994 metric
+│   │   └── broeck.py          # two-scale bubble                 [roadmap 2]
+│   └── viz/
+│       ├── style.py           # shared palette
+│       ├── figures.py         # static figures
+│       └── animation.py       # flyby animation
+├── scripts/
+│   └── run_alcubierre.py      # command line driver
+├── tests/                     # pytest suite
+└── docs/assets/               # images used by this README
 ```
+
+Entries marked `[roadmap N]` are planned, not yet written; see
+[ROADMAP.md](ROADMAP.md). Everything else is in place.
 
 Every metric is written in the ADM form
 
@@ -206,13 +220,8 @@ longer faster than light.
 
 ## Roadmap
 
-See **[ROADMAP.md](ROADMAP.md)** for the full plan and its status. In short:
-
-- [x] Alcubierre metric, energy budget, causal structure, tracers, visualisation
-- [x] `WarpMetric` interface, packaging, test suite
-- [ ] Null-geodesic ray tracing — the view from the bridge, and the blueshift map
-- [ ] Van Den Broeck's two-scale bubble — thirty orders of magnitude off the
-      energy bill
+Null-geodesic ray tracing and Van Den Broeck's two-scale bubble are next; the
+plan and its status live in **[ROADMAP.md](ROADMAP.md)**.
 
 ## References
 
