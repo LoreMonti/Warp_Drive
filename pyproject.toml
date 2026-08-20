@@ -27,7 +27,7 @@ dependencies = [
 dev = ["pytest>=7.0"]
 
 [project.urls]
-Repository = "https://github.com/lorenzomonti/warp-drive"
+Repository = "https://github.com/LoreMonti/Warp_drive"
 
 [tool.setuptools.packages.find]
 where = ["src"]

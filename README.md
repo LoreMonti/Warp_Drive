@@ -29,8 +29,8 @@ velocity, not a local one.
 ## Install
 
 ```bash
-git clone https://github.com/lorenzomonti/warp-drive.git
-cd warp-drive
+git clone https://github.com/LoreMonti/Warp_drive.git
+cd Warp_drive
 pip install -e ".[dev]"
 ```
 
