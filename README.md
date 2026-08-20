@@ -66,7 +66,8 @@ Warp_Drive/
 │   ├── integrators.py         # RK4 vectorised over an ensemble
 │   ├── tracers.py             # Eulerian congruence dragged by the bubble
 │   ├── diagnostics.py         # travel times, energy budget, horizon
-│   ├── geodesics.py           # null-geodesic ray tracing        [roadmap 1]
+│   ├── symbolic.py            # Einstein tensor via sympy        [roadmap 1]
+│   ├── geodesics.py           # null-geodesic ray tracing        [roadmap 3]
 │   ├── metrics/
 │   │   ├── base.py            # WarpMetric: the 3+1 interface
 │   │   ├── alcubierre.py      # the 1994 metric
@@ -218,8 +219,9 @@ longer faster than light.
 
 ## Roadmap
 
-Null-geodesic ray tracing and Van Den Broeck's two-scale bubble are next; the
-plan and its status live in **[ROADMAP.md](ROADMAP.md)**.
+A symbolic derivation of the stress-energy tensor, Van Den Broeck's two-scale
+bubble and null-geodesic ray tracing are next, in that order; the plan and its
+status live in **[ROADMAP.md](ROADMAP.md)**.
 
 ## References
 
