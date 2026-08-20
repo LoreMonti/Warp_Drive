@@ -21,43 +21,19 @@ the test suite; unchecked ones are planned.
       capture (the bulldozer problem).
 - [x] **Visualisation** — shape function, expansion surface, exotic-matter
       torus, 3D shell with an IXS-style hull, and the flyby animation.
-- [x] **Packaging and tests** — `src` layout, CLI driver, 28 tests pinning the
+- [x] **Symbolic derivation** — `symbolic.py` builds the Einstein tensor of the
+      ansatz with sympy and reproduces the hand-written energy density and
+      expansion exactly, prefactor included. Optional `[symbolic]` extra, so the
+      runtime stays numpy + matplotlib.
+- [x] **Packaging and tests** — `src` layout, CLI driver, 36 tests pinning the
       invariants a sign error would not crash on.
 
-## 1. Symbolic derivation of the stress-energy tensor
-
-- [ ] `symbolic.py`: metric ansatz, Christoffel symbols, Riemann, Ricci,
-      Einstein tensor via sympy
-- [ ] Eulerian energy density $\varepsilon = T_{\mu\nu} n^\mu n^\nu$ and
-      expansion $\theta$ as symbolic expressions
-- [ ] Specialise to $B = 1$ and check it reproduces the hand-written
-      `AlcubierreMetric.energy_density` and `expansion`
-- [ ] Regression test, skipped when sympy is absent
-- [ ] `sympy` as an optional `[symbolic]` extra, so the runtime stays
-      numpy + matplotlib
-
-Derive the Einstein tensor directly from the general ansatz
-
-$$ds^2 = -c^2 dt^2 + B(r_s)^2\left[\left(dx - \beta(r_s)\,dt\right)^2 + dy^2 + dz^2\right]$$
-
-rather than transcribing results from papers.
-
-The immediate payoff is not the next metric, it is a check on what already
-exists: specialised to $B = 1$, the symbolic result must reproduce the
-`energy_density` written by hand. If it does, that prefactor
-$c^4/8\pi G$ is independently confirmed; if it does not, there is a bug the
-current tests cannot see — they pin signs, symmetries and scaling, none of
-which constrain an overall constant.
-
-It is also what makes step 2 tractable. In a metric with non-trivial $B$ the
-conformal factor and its first two derivatives both enter $T_{\mu\nu}$, so
-deriving $\varepsilon$ by hand is long and, worse, unverifiable.
-
-## 2. Van Den Broeck's two-scale bubble
+## 1. Van Den Broeck's two-scale bubble
 
 - [ ] $B(r_s)$ volume profile in `shapes.py`
 - [ ] `BroeckMetric` overriding `conformal_factor`
-- [ ] Expansion and energy density from the symbolic derivation of step 1
+- [ ] Expansion and energy density from `symbolic.py`, run with
+      `conformal=True`
 - [ ] Energy scaling plot: exotic mass vs neck radius
 - [ ] Side-by-side comparison with Alcubierre on identical axes
 
@@ -92,7 +68,7 @@ Implementation notes:
 Reference: C. Van Den Broeck, *A "warp drive" with more reasonable total energy
 requirements*, Class. Quantum Grav. **16**, 3973 (1999).
 
-## 3. Null-geodesic ray tracing — the view from the bridge
+## 2. Null-geodesic ray tracing — the view from the bridge
 
 - [ ] Hamiltonian ray integrator for the ADM form
 - [ ] Adaptive RK45 in `integrators.py`

@@ -30,8 +30,9 @@ cd Warp_Drive
 pip install -e ".[dev]"
 ```
 
-Runtime dependencies are `numpy` and `matplotlib` only; `pytest` is needed just
-for the test suite.
+Runtime dependencies are `numpy` and `matplotlib` only. The `dev` extra adds
+`pytest`; a separate `symbolic` extra adds `sympy`, used by `symbolic.py` and
+by nothing at runtime — `warpdrive` imports fine without it.
 
 ## Usage
 
@@ -66,12 +67,12 @@ Warp_Drive/
 │   ├── integrators.py         # RK4 vectorised over an ensemble
 │   ├── tracers.py             # Eulerian congruence dragged by the bubble
 │   ├── diagnostics.py         # travel times, energy budget, horizon
-│   ├── symbolic.py            # Einstein tensor via sympy        [roadmap 1]
-│   ├── geodesics.py           # null-geodesic ray tracing        [roadmap 3]
+│   ├── symbolic.py            # Einstein tensor via sympy   [optional extra]
+│   ├── geodesics.py           # null-geodesic ray tracing        [roadmap 2]
 │   ├── metrics/
 │   │   ├── base.py            # WarpMetric: the 3+1 interface
 │   │   ├── alcubierre.py      # the 1994 metric
-│   │   └── broeck.py          # two-scale bubble                 [roadmap 2]
+│   │   └── broeck.py          # two-scale bubble                 [roadmap 1]
 │   └── viz/
 │       ├── style.py           # shared palette
 │       ├── figures.py         # static figures
@@ -112,6 +113,16 @@ $E \propto v_s^2 R^2 \sigma$, and the horizon solver agreeing with the analytic
 condition $f = 1 - c/v_s$. The closed-form energy budget is also checked
 against the generic quadrature in the base class, which is the test that keeps
 the interface honest when a second metric is added.
+
+One check goes further. `symbolic.py` builds the Einstein tensor of the ansatz
+from scratch with sympy — Christoffel symbols, Ricci tensor, curvature scalar —
+keeping the full time dependence, and contracts it on the Eulerian normal. The
+result must reproduce the density written by hand from the 1994 paper. It does,
+identically, and the numerical bridge feeds the package's own numpy shape
+functions into the derived structure, which is the only test in the suite that
+constrains the overall $c^4/8\pi G$ prefactor: everything else pins signs,
+symmetries and scaling, none of which fix a constant. Those tests skip cleanly
+when sympy is absent.
 
 ## What the code computes
 
@@ -219,9 +230,8 @@ longer faster than light.
 
 ## Roadmap
 
-A symbolic derivation of the stress-energy tensor, Van Den Broeck's two-scale
-bubble and null-geodesic ray tracing are next, in that order; the plan and its
-status live in **[ROADMAP.md](ROADMAP.md)**.
+Van Den Broeck's two-scale bubble comes next, then null-geodesic ray tracing;
+the plan and its status live in **[ROADMAP.md](ROADMAP.md)**.
 
 ## References
 
