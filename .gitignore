@@ -1,0 +1,17 @@
+# --- Generated output ---
+output/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.venv/
+venv/
+
+# --- Editors and OS ---
+.vscode/
+.idea/
+.DS_Store
