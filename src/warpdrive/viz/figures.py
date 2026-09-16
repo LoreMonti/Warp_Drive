@@ -14,25 +14,74 @@ import os
 # --- Third-party imports ---
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.colors import SymLogNorm
 
 # --- Local imports ---
 from ..shapes import tanh_top_hat, tanh_top_hat_derivative
-from .style import ACCENT, BG, FG, dark_axes, dark_figure, save, style_colorbar
+from .style import (
+    ACCENT,
+    BG,
+    FG,
+    bubble_colormap,
+    dark_axes,
+    dark_figure,
+    save,
+    style_colorbar,
+)
+
+
+def energy_norm(eps, decades=4):
+    """
+    Symmetric logarithmic colour scale for an energy density map.
+
+    Linear within `decades` orders of magnitude of the largest |eps| and
+    logarithmic beyond, identical for both signs, so a positive region
+    many times weaker than the negative one still shows, and two maps
+    passed the same norm share one colour scale.
+    """
+
+    peak = float(np.max(np.abs(eps)))
+    if peak == 0.0:
+        peak = 1.0
+    return SymLogNorm(linthresh=peak * 10.0 ** (-decades), vmin=-peak,
+                      vmax=peak, base=10)
+
+
+def energy_title(eps):
+    """Describe the sign content of a density map from the data itself."""
+
+    if np.max(eps) <= 0.0:
+        return ("Exotic matter: negative energy density everywhere,\n"
+                "distributed as a torus around the axis of motion")
+    return ("Energy density: negative (blue) and positive (red),\n"
+            "the weak energy condition is violated where it is blue")
 
 
 def plot_shape_function(metric, path, sigmas=(0.05, None, 0.4)):
     """
-    The shape function and its derivative, for a few wall thicknesses.
+    The shape function and its derivative, for a few wall thicknesses,
+    plus the conformal factor B(r_s) when the metric has a non-trivial
+    one.
 
-    Passing None inside `sigmas` substitutes the metric's own value.
+    Passing None inside `sigmas` substitutes the metric's own value, which
+    is drawn solid.
     """
 
-    sigmas = [metric.sigma if s is None else s for s in sigmas]
+    own = metric.sigma
+    sigmas = sorted({own if s is None else s for s in sigmas})
     r = np.linspace(0.0, 2.5 * metric.radius, 2000)
 
-    fig, (ax1, ax2) = dark_figure(2, 1, figsize=(7.5, 6.5), sharex=True)
+    conformal = np.asarray(metric.conformal_factor(r, 0.0, 0.0), dtype=float)
+    inflated = not np.all(conformal == 1.0)
 
-    for sigma, dashes in zip(sigmas, ["--", "-", ":"]):
+    fig, axes = dark_figure(3 if inflated else 2, 1,
+                            figsize=(7.5, 9.0 if inflated else 6.5),
+                            sharex=True)
+    ax1, ax2 = axes[0], axes[1]
+
+    others = iter(["--", ":", "-."])
+    for sigma in sigmas:
+        dashes = "-" if sigma == own else next(others)
         ax1.plot(r / metric.radius, tanh_top_hat(r, metric.radius, sigma),
                  dashes, lw=2.0,
                  label=rf"$\sigma R$ = {sigma * metric.radius:.0f}")
@@ -41,13 +90,20 @@ def plot_shape_function(metric, path, sigmas=(0.05, None, 0.4)):
                  * metric.radius,
                  dashes, lw=2.0)
 
-    for ax in (ax1, ax2):
+    ax1.set_ylabel(r"$f(r_s)$")
+    ax2.set_ylabel(r"$R\,\mathrm{d}f/\mathrm{d}r_s$")
+
+    if inflated:
+        ax3 = axes[2]
+        ax3.plot(r / metric.radius, conformal, color=ACCENT, lw=2.0)
+        ax3.set_yscale("log")
+        ax3.set_ylabel(r"$B(r_s)$")
+
+    for ax in axes:
         ax.axvline(1.0, color="#ff9f43", lw=1.0, alpha=0.6)
         dark_axes(ax)
 
-    ax1.set_ylabel(r"$f(r_s)$")
-    ax2.set_ylabel(r"$R\,\mathrm{d}f/\mathrm{d}r_s$")
-    ax2.set_xlabel(r"$r_s / R$")
+    axes[-1].set_xlabel(r"$r_s / R$")
     ax1.set_title("Shape function: flat inside, flat outside,\n"
                   "all the curvature squeezed into the wall")
 
@@ -88,10 +144,13 @@ def plot_expansion_scalar(metric, path, extent=2.0, resolution=220):
 
 def plot_energy_density(metric, path, extent=2.0, resolution=400):
     """
-    The exotic matter distribution in the meridional plane.
+    The energy density in the meridional plane, on a symmetric
+    logarithmic colour scale: blue where it is negative, red where it is
+    positive, dark where it vanishes.
 
-    Negative everywhere it is non-zero, and vanishing on the axis: a
-    torus wrapped around the direction of motion.
+    For Alcubierre it is negative everywhere it is non-zero and vanishes
+    on the axis: a torus wrapped around the direction of motion. A
+    conformal factor adds a shell carrying both signs.
     """
 
     span = extent * metric.radius
@@ -101,9 +160,10 @@ def plot_energy_density(metric, path, extent=2.0, resolution=400):
 
     fig, ax = dark_figure(figsize=(7.6, 6.4))
     mesh = ax.pcolormesh(X / metric.radius, RHO / metric.radius, eps,
-                         cmap="inferno_r", shading="auto")
+                         cmap=bubble_colormap(),
+                         norm=energy_norm(eps), shading="auto")
     style_colorbar(fig.colorbar(mesh, ax=ax, pad=0.02),
-                   r"energy density  [J m$^{-3}$]")
+                   r"energy density  [J m$^{-3}$], symmetric log")
 
     ax.add_patch(plt.Circle((0, 0), 1.0, fill=False, color=ACCENT, lw=1.0,
                             ls="--", alpha=0.7))
@@ -114,8 +174,7 @@ def plot_energy_density(metric, path, extent=2.0, resolution=400):
 
     ax.set_xlabel(r"$(x - x_s)/R$")
     ax.set_ylabel(r"$\rho / R$")
-    ax.set_title("Exotic matter: negative energy density everywhere,\n"
-                 "distributed as a torus around the axis of motion")
+    ax.set_title(energy_title(eps))
     ax.set_aspect("equal")
     dark_axes(ax)
 
@@ -127,18 +186,19 @@ def plot_shell_3d(metric, path, n_samples=400000, seed=42):
     """
     Monte-Carlo rendering of the exotic-matter shell.
 
-    Points are accepted with a probability proportional to |eps|, so the
-    visual density of the cloud is the physical density of negative
-    energy. The IXS-style twin rings are drawn where that matter has to
+    Points are accepted with a probability proportional to the negative
+    part of eps, so the visual density of the cloud is the physical
+    density of negative energy; positive energy, where a metric has any,
+    is not drawn. The IXS-style twin rings are drawn where that matter has to
     be held.
     """
 
     rng = np.random.default_rng(seed)
     span = 1.6 * metric.radius
     points = rng.uniform(-span, span, size=(n_samples, 3))
-    eps = np.abs(metric.energy_density(points[:, 0], points[:, 1],
-                                       points[:, 2]))
-    weight = eps / eps.max()
+    exotic = np.maximum(-metric.energy_density(points[:, 0], points[:, 1],
+                                               points[:, 2]), 0.0)
+    weight = exotic / max(float(exotic.max()), np.finfo(float).tiny)
 
     keep = rng.random(len(weight)) < weight
     points, weight = points[keep], weight[keep]
