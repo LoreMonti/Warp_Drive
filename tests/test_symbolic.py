@@ -15,9 +15,15 @@ import math
 import pytest
 import sympy as sp
 
-from warpdrive import AlcubierreMetric
+from warpdrive import AlcubierreMetric, BroeckMetric
 from warpdrive.constants import C_LIGHT, G
-from warpdrive.shapes import tanh_top_hat, tanh_top_hat_derivative
+from warpdrive.shapes import (
+    broeck_volume_profile,
+    broeck_volume_profile_derivative,
+    broeck_volume_profile_second_derivative,
+    tanh_top_hat,
+    tanh_top_hat_derivative,
+)
 from warpdrive.symbolic import (
     alcubierre_expansion_reference,
     alcubierre_reference,
@@ -151,13 +157,84 @@ def test_flat_interior_and_exterior_carry_no_energy(numeric):
     assert outside == pytest.approx(0.0, abs=1e-12)
 
 
-def test_conformal_factor_enters_the_energy_density():
+@pytest.fixture(scope="module")
+def general():
+    """Derivation with both profiles abstract; the slow one, ~9 s."""
+
+    return derive(conformal=True)
+
+
+def test_conformal_factor_enters_the_energy_density(general):
     """
     With B carried abstractly the density must actually depend on it,
     otherwise the Van Den Broeck variant could never differ from
     Alcubierre and the whole interface would be pointless.
     """
 
-    general = derive(conformal=True)
     assert general["energy_density"].has(sp.Function("B"))
     assert general["energy_density"] != alcubierre_reference(general)
+
+
+@pytest.fixture(scope="module")
+def broeck():
+    return BroeckMetric(speed=SPEED_RATIO * C_LIGHT)
+
+
+@pytest.fixture(scope="module")
+def broeck_numeric(general, broeck):
+    """
+    The general derivation with the Van Den Broeck profiles plugged in.
+    It still carries the coupling terms proportional to B' (1 - f), which
+    `BroeckMetric` drops; in the separated configuration they are below
+    e^-100 of the terms kept.
+    """
+
+    m = broeck
+    shape = (lambda r: tanh_top_hat(r, m.radius, m.sigma),
+             lambda r: tanh_top_hat_derivative(r, m.radius, m.sigma),
+             None)
+    parameters = (m.inner_radius, m.thickness, m.alpha, m.order)
+    conformal = (
+        lambda r: broeck_volume_profile(r, *parameters),
+        lambda r: broeck_volume_profile_derivative(r, *parameters),
+        lambda r: broeck_volume_profile_second_derivative(r, *parameters),
+    )
+    profiles = {"f": shape, "B": conformal}
+    return {
+        "energy_density": numeric_lambda(general, general["energy_density"],
+                                         profiles),
+        "expansion": numeric_lambda(general, general["expansion"], profiles),
+    }
+
+
+# pocket, transition region (both signs of eps_B), flat interior, shift wall
+BROECK_SAMPLES = [(3.0, 4.0, 0.0), (12.0, 5.0, 0.0), (0.0, 0.0, 19.9),
+                  (-14.0, 8.0, 3.0), (50.0, 0.0, 10.0), (95.0, 20.0, 0.0),
+                  (-70.0, 70.0, 0.0), (0.0, 101.0, 0.0)]
+
+
+def test_broeck_energy_density_matches_the_derivation(broeck_numeric,
+                                                      broeck):
+    """
+    Pins the c^4/8 pi G prefactor and every coefficient of the static
+    term of the transition region, which nothing else in the suite
+    constrains: the closed form for the net budget follows from the same
+    expression, and the published numbers only fix two figures.
+    """
+
+    factor = C_LIGHT ** 4 / (8.0 * math.pi * G)
+    for x, y, z in BROECK_SAMPLES:
+        derived = factor * float(
+            broeck_numeric["energy_density"](0.0, x, y, z, SPEED_RATIO)
+        )
+        implemented = float(broeck.energy_density(x, y, z))
+        assert derived == pytest.approx(implemented, rel=1e-10,
+                                        abs=1e-10 * factor)
+
+
+def test_broeck_expansion_matches_the_derivation(broeck_numeric, broeck):
+    for x, y, z in BROECK_SAMPLES:
+        derived = C_LIGHT * float(broeck_numeric["expansion"](0.0, x, y, z,
+                                                              SPEED_RATIO))
+        implemented = float(broeck.expansion(x, y, z))
+        assert derived == pytest.approx(implemented, rel=1e-10, abs=1e-12)

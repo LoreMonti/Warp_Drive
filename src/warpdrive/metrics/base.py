@@ -172,8 +172,9 @@ class WarpMetric(ABC):
         is the ship itself: sitting at the centre of the bubble and
         comoving with it, dx_dt = v_s.
 
-        Inside the bubble beta = v_s and B = 1, so the two terms cancel
-        exactly and dtau/dt = 1 for any v_s, however large.
+        Inside the bubble beta = v_s, so dx_dt - beta = 0 and B drops out:
+        dtau/dt = 1 for any v_s, however large, and whether or not the
+        ship sits in an inflated pocket.
         """
 
         if dx_dt is None:
@@ -211,9 +212,10 @@ class WarpMetric(ABC):
             sqrt(gamma) = B^3,
 
         on a spherical grid laid over each region of `energy_regions`
-        separately, so a thin wall gets its own n_radial points instead
-        of a share of a grid spanning the whole bubble. Axisymmetry about
-        the x axis makes the azimuthal integral a factor of 2 pi.
+        separately, so a thin wall gets its own n_radial points instead of
+        a share of a grid spanning the whole bubble: midpoint rule in r,
+        trapezoid rule in the polar angle. Axisymmetry about the x axis
+        makes the azimuthal integral a factor of 2 pi.
 
         This works for any metric implementing the interface. Metrics
         with a closed form override `energy_budget_analytic` and are
@@ -236,7 +238,11 @@ class WarpMetric(ABC):
                     "resolve in r; use a closed form in the wall offset"
                 )
 
-            r = np.linspace(inner, outer, n_radial)
+            # midpoint rule in r: a region may end on a discontinuity of
+            # the density, where an endpoint value is not the limit from
+            # inside; the polar grid keeps its endpoints, where sin = 0
+            step = (outer - inner) / n_radial
+            r = inner + (np.arange(n_radial) + 0.5) * step
             R_GRID, THETA = np.meshgrid(r, polar, indexing="ij")
 
             x = R_GRID * np.cos(THETA)
@@ -247,9 +253,9 @@ class WarpMetric(ABC):
             integrand = eps * conformal ** 3 * R_GRID ** 2 * np.sin(THETA)
 
             def integrate(values):
-                return 2.0 * np.pi * np.trapezoid(
-                    np.trapezoid(values, polar, axis=1), r
-                )
+                return 2.0 * np.pi * step * np.trapezoid(
+                    values, polar, axis=1
+                ).sum()
 
             negative += integrate(np.minimum(integrand, 0.0))
             positive += integrate(np.maximum(integrand, 0.0))
