@@ -34,13 +34,13 @@ the test suite; unchecked ones are planned.
 - [x] $B(r_s)$ volume profile in `shapes.py`: the polynomial of the 1999 paper,
       $B = 1 + \alpha\left[n w^{n-1} - (n-1) w^n\right]$ with
       $w = (\tilde R + \tilde\Delta - r_s)/\tilde\Delta$
-- [ ] `BroeckMetric` overriding `conformal_factor`, written from the derivation
+- [x] `BroeckMetric` overriding `conformal_factor`, written from the derivation
       rather than transcribed from the 1999 paper, with the transition region of
       $B$ kept inside the flat interior of $f$
 - [x] Energy budget split into its negative and positive parts, on a radial
       grid that resolves each wall
-- [ ] Closed-form check of the net budget of the $B$ region (see below)
-- [ ] Cross-check against the published numbers, as an independent third
+- [x] Closed-form check of the net budget of the $B$ region (see below)
+- [x] Cross-check against the published numbers, as an independent third
       opinion
 - [ ] Energy scaling plot: exotic mass vs neck radius
 - [ ] Side-by-side comparison with Alcubierre on identical axes
@@ -75,8 +75,10 @@ Implementation notes:
   `energy_regions` on its own grid and refuses regions too thin for double
   precision; `AlcubierreMetric.energy_budget_analytic` integrates over the
   wall offset $s = r - R$, which reaches Planck-thin walls and matches the
-  thin-wall limit. `BroeckMetric` only has to add the transition region of $B$
-  to `energy_regions`;
+  thin-wall limit. `BroeckMetric` adds the transition region of $B$ to
+  `energy_regions`. The radial quadratures use the midpoint rule, because
+  $B''$ jumps at the inner edge of the transition region and a trapezoid rule
+  converges only as $1/n$ there;
 - the energy density is no longer sign-definite: the transition region of $B$
   carries $\varepsilon > 0$, so the $\varepsilon \leq 0$ invariant of the
   Alcubierre tests must not be reused for `BroeckMetric`;
@@ -92,9 +94,9 @@ Implementation notes:
 - the published numbers to reproduce, for $n = 80$, $\alpha = 10^{17}$,
   $\tilde R = \tilde\Delta = 10^{-15}$ m: $E_{II,-} = -1.4 \times 10^{30}$ kg,
   $E_{II,+} = 4.9 \times 10^{30}$ kg, sign change at $w = 0.981$. A
-  preliminary high-precision quadrature reproduces all three
-  ($-1.38$, $4.87$, $0.9812$) and the closed form gives the same net
-  $3.49 \times 10^{30}$ kg. The same quadrature does *not* reproduce the peak
+  `BroeckMetric.from_paper()` reproduces all three ($-1.38$, $4.87$,
+  $0.981$) and the closed form gives the same net $3.49 \times 10^{30}$ kg,
+  all pinned by tests. The same quadrature does *not* reproduce the peak
   density of eq. (14) or the curvature radius of eq. (20), which it finds near
   $w \approx 0.575$ rather than $0.349$; at $w = 0.349$ the printed profile has
   $B - 1 \sim 10^{-18}$. Those two numbers are not used as checks until the

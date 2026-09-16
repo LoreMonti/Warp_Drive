@@ -54,6 +54,17 @@ metric = AlcubierreMetric(speed=10 * C_LIGHT, radius=100.0, sigma=0.1)
 print(format_profile(profile_mission(metric)))
 ```
 
+Van Den Broeck's bubble takes the same calls; `BroeckMetric.from_paper()` builds
+the configuration of the 1999 paper:
+
+```python
+from warpdrive import BroeckMetric
+
+paper = BroeckMetric.from_paper()
+budget = paper.energy_budget_analytic()
+print(budget.negative_mass, budget.positive_mass, paper.pocket_proper_radius())
+```
+
 ## Layout
 
 ```
@@ -73,7 +84,7 @@ Warp_Drive/
 │   ├── metrics/
 │   │   ├── base.py            # WarpMetric: the 3+1 interface
 │   │   ├── alcubierre.py      # the 1994 metric
-│   │   └── broeck.py          # two-scale bubble                 [roadmap 1]
+│   │   └── broeck.py          # Van Den Broeck's two-scale bubble
 │   └── viz/
 │       ├── style.py           # shared palette
 │       ├── figures.py         # static figures
@@ -113,7 +124,8 @@ superluminal motion in the *exterior* rejected as spacelike,
 $E \propto v_s^2 R^2 \sigma$, and the horizon solver agreeing with the analytic
 condition $f = 1 - c/v_s$. The closed-form energy budget is also checked against
 the generic quadrature in the base class, which is the test that keeps the
-interface honest when a second metric is added.
+interface honest now that a second metric exists: for Van Den Broeck the two
+agree on both signs of the budget.
 
 ### Where the physics comes from
 
@@ -195,6 +207,50 @@ from the inside.
 ship worldline $f = 1$ and $\dot{x} = v_s$, so $d\tau = dt$ exactly: no time
 dilation at any $v_s$.
 
+## Van Den Broeck's two-scale bubble
+
+`BroeckMetric` keeps Alcubierre's shift and adds a conformal factor $B(r_s)$
+equal to $1 + \alpha$ inside a pocket of radius $\tilde R$ and to $1$ outside a
+transition region of thickness $\tilde\Delta$. A coordinate radius $\tilde R$
+then encloses a proper radius $(1 + \alpha)\tilde R$: with $\alpha = 10^{17}$ and
+$\tilde R = 10^{-15}$ m, a 200 m pocket sits behind a shift wall of radius
+$3 \times 10^{-15}$ m. Only the separated configuration is implemented, with the
+transition inside the flat interior of $f$.
+
+Running the derivation with $B$ abstract gives, in that configuration,
+
+$$\varepsilon = \frac{c^4}{8\pi G}\left[\frac{B'^2}{B^4} - \frac{2B''}{B^3} - \frac{4B'}{r_s B^3}\right] - \frac{c^2 v_s^2}{32\pi G}\,\frac{\rho^2}{r_s^2}\,f'^2$$
+
+and the expansion is Alcubierre's. The first term does not depend on $v_s$:
+inflating volume costs energy even at rest. It changes sign inside the
+transition region, but with $\psi = \sqrt{B}$ an integration by parts shows
+its total is strictly positive,
+
+$$E_B = \frac{c^4}{2G}\int_0^\infty \frac{B'^2}{B}\,r^2\,dr > 0$$
+
+so the budget is reported as a negative and a positive part. For the paper's
+configuration ($n = 80$, $v_s = c$, a shift wall of $10^2$ Planck lengths):
+
+| part | computed | published |
+| --- | ---: | ---: |
+| transition region, $E_-$ | $-1.38 \times 10^{30}$ kg | $-1.4 \times 10^{30}$ kg |
+| transition region, $E_+$ | $+4.87 \times 10^{30}$ kg | $+4.9 \times 10^{30}$ kg |
+| shift wall, $E_-$ | $-2.08 \times 10^{29}$ kg | $-6.3 \times 10^{29}$ kg |
+| total | $-0.80\,M_\odot$ and $+2.45\,M_\odot$ | |
+
+The shift wall does not match because the paper uses a different profile $f$;
+only its order of magnitude is comparable. For scale: an Alcubierre bubble of
+100 m radius with the same Planck-thin wall needs about $-6 \times 10^{62}$ kg
+(Pfenning & Ford), ten orders of magnitude above the mass of the visible
+universe. The two-scale bubble brings that below a solar mass of negative
+energy, but more than twice as much positive energy comes with it, and every
+obstruction listed below still applies.
+
+Two numbers from the paper are *not* reproduced: the peak density of eq. (14)
+and the curvature radius of eq. (20), placed at $w = 0.349$ where the printed
+profile has $B - 1 \sim 10^{-18}$. The computation finds both near
+$w \approx 0.575$; they are not used as checks.
+
 ## Sample output
 
 For $R = 100$ m, $1/\sigma = 10$ m, $v_s = 10c$:
@@ -263,8 +319,8 @@ longer faster than light.
 
 ## Roadmap
 
-Van Den Broeck's two-scale bubble comes next, then null-geodesic ray tracing;
-the plan and its status live in **[ROADMAP.md](ROADMAP.md)**.
+The comparison plots for Van Den Broeck's bubble come next, then null-geodesic
+ray tracing; the plan and its status live in **[ROADMAP.md](ROADMAP.md)**.
 
 ## References
 
