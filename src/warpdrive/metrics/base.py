@@ -265,7 +265,7 @@ class WarpMetric(ABC):
 
         return None
 
-    def horizon_offset(self, tol=1.0e-9):
+    def horizon_offset(self, tol=1.0e-9, max_iterations=200):
         """
         Distance ahead of the ship at which a future horizon forms.
 
@@ -278,8 +278,13 @@ class WarpMetric(ABC):
         front wall of their own bubble is causally disconnected, and the
         drive cannot be steered, slowed or switched off from the inside.
 
+        The bisection stops once the bracket is `tol` times the smaller of
+        the radius and the wall thickness, so it locates the horizon
+        within the wall at any scale.
+
         Returns the offset in metres, or None for a subluminal bubble
-        (which has no horizon).
+        (which has no horizon). Raises ValueError when the wall is too
+        thin relative to the radius to be resolved in double precision.
         """
 
         def photon_speed(offset):
@@ -287,12 +292,25 @@ class WarpMetric(ABC):
             conformal = float(self.conformal_factor(offset, 0.0, 0.0))
             return beta + C_LIGHT / conformal - self.speed
 
-        lo, hi = 0.0, self.radius + 30.0 / self.sigma
+        half = WALL_HALF_WIDTH / self.sigma
+        lo, hi = 0.0, self.radius + half
         if photon_speed(lo) <= 0.0 or photon_speed(hi) >= 0.0:
             return None
 
-        # photon_speed decreases monotonically from the centre outwards
-        while hi - lo > tol * max(1.0, self.radius):
+        if half < MIN_RELATIVE_WIDTH * hi:
+            raise ValueError(
+                f"wall of thickness {1.0 / self.sigma:.3e} m is too thin to "
+                f"resolve around a radius of {self.radius:.3e} m"
+            )
+
+        # Not monotonic in general: with a conformal factor, c/B is tiny in
+        # the pocket and grows through the transition region. It is
+        # positive everywhere inside the shift wall and negative outside
+        # it, though, so the bracket holds a single sign change.
+        resolution = tol * min(self.radius, 1.0 / self.sigma)
+        for _ in range(max_iterations):
+            if hi - lo <= resolution:
+                break
             mid = 0.5 * (lo + hi)
             if photon_speed(mid) > 0.0:
                 lo = mid

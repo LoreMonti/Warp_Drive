@@ -162,6 +162,35 @@ def test_horizon_sits_where_the_shape_function_says_it_should():
     )
 
 
+@pytest.mark.parametrize("radius, sigma", [(1.0e-3, 1.0e4),
+                                           (3.0e-15, 1.0e16)])
+def test_horizon_is_located_in_small_bubbles(radius, sigma):
+    """
+    The bisection used to stop at an absolute 1e-9 m, so below a
+    nanometre it returned the midpoint of its bracket without iterating.
+    """
+
+    metric = AlcubierreMetric(speed=10.0 * C_LIGHT, radius=radius,
+                              sigma=sigma)
+    offset = metric.horizon_offset()
+
+    assert float(metric.shape(offset)) == pytest.approx(
+        1.0 - C_LIGHT / metric.speed, abs=1e-6
+    )
+
+
+def test_horizon_refuses_an_unresolvable_wall():
+    """A Planck-thin wall around a femtometre bubble cannot be bisected."""
+
+    sigma = 1.0 / (1.0e2 * L_PLANCK)
+    fast = AlcubierreMetric(speed=10.0 * C_LIGHT, radius=3.0e-15, sigma=sigma)
+    slow = AlcubierreMetric(speed=0.5 * C_LIGHT, radius=3.0e-15, sigma=sigma)
+
+    with pytest.raises(ValueError):
+        fast.horizon_offset()
+    assert slow.horizon_offset() is None
+
+
 def test_subluminal_bubbles_have_no_horizon():
     """Below c the crew can still signal the front wall and steer."""
 
