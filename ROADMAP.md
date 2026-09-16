@@ -26,8 +26,8 @@ the test suite; unchecked ones are planned.
       expansion exactly, prefactor included. It is now the source of truth for
       the physics: the expressions in `metrics/` are the fast numpy path,
       written by reading the derivation, and a test holds the two together.
-- [x] **Packaging and tests** — `src` layout, CLI driver, and a test suite pinning the
-      invariants a sign error would not crash on.
+- [x] **Packaging and tests** — `src` layout, CLI drivers, and a test suite
+      pinning the invariants a sign error would not crash on.
 
 ## 1. Van Den Broeck's two-scale bubble
 
@@ -42,8 +42,10 @@ the test suite; unchecked ones are planned.
 - [x] Closed-form check of the net budget of the $B$ region (see below)
 - [x] Cross-check against the published numbers, as an independent third
       opinion
-- [ ] Energy scaling plot: exotic mass vs neck radius
-- [ ] Side-by-side comparison with Alcubierre on identical axes
+- [x] Energy scaling plot: exotic mass vs neck radius, at fixed pocket and
+      wall (`neck_scaling`, `plot_neck_scaling`)
+- [x] Side-by-side comparison with Alcubierre on identical axes
+      (`plot_metric_comparison`, `scripts/run_broeck.py`)
 
 Van Den Broeck (1999) noticed that the energy requirement scales with the
 *surface* of the bubble, not with the volume it encloses. Adding a second shape
@@ -103,8 +105,10 @@ Implementation notes:
   discrepancy is understood;
 - `horizon_offset` already solves $\beta + c/B = v_s$, so the causal structure
   needs no changes either;
-- the figures and the driver take a metric, so the two spacetimes can be
-  compared side by side on identical axes with no changes to `viz/`;
+- the figures take a metric, but three of them silently assumed Alcubierre:
+  a one-sided colour scale and a 'negative everywhere' title for the density,
+  and a 3D shell sampled by $|\varepsilon|$. They now use a symmetric log scale,
+  a title read from the data, and the negative part only;
 - the honest counterpart: the quantum inequalities of Pfenning & Ford still
   apply to the neck, the interior volume has to be seeded somehow, and the
   causal and stability problems are untouched. The variant makes the drive

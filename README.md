@@ -41,10 +41,15 @@ optional extra.
 python scripts/run_alcubierre.py
 python scripts/run_alcubierre.py --speed 2 --radius 50 --sigma 0.5
 python scripts/run_alcubierre.py --no-animation
+python scripts/run_broeck.py
+python scripts/run_broeck.py --speed 1 --pocket 50
 ```
 
-The script writes four figures, one animation and a mission report to
-`output/`, which is not tracked. As a library:
+`run_alcubierre.py` writes four figures, one animation and a mission report to
+`output/`, which is not tracked. `run_broeck.py` writes the same figures for Van
+Den Broeck's bubble plus the comparison and neck-scaling figures to
+`output/broeck/`, with mission reports for a macroscopic bubble and for the
+configuration of the 1999 paper. As a library:
 
 ```python
 from warpdrive import AlcubierreMetric, profile_mission, format_profile
@@ -78,7 +83,7 @@ Warp_Drive/
 │   ├── shapes.py              # radial profiles f(r), B(r) and derivatives
 │   ├── integrators.py         # RK4 vectorised over an ensemble
 │   ├── tracers.py             # Eulerian congruence dragged by the bubble
-│   ├── diagnostics.py         # travel times, energy budget, horizon
+│   ├── diagnostics.py         # travel times, energy budget, neck scan
 │   ├── symbolic.py            # Einstein tensor: source of truth
 │   ├── geodesics.py           # null-geodesic ray tracing        [roadmap 2]
 │   ├── metrics/
@@ -88,9 +93,11 @@ Warp_Drive/
 │   └── viz/
 │       ├── style.py           # shared palette
 │       ├── figures.py         # static figures
+│       ├── comparison.py      # Alcubierre against Van Den Broeck
 │       └── animation.py       # flyby animation
 ├── scripts/
-│   └── run_alcubierre.py      # command line driver
+│   ├── run_alcubierre.py      # command line driver
+│   └── run_broeck.py          # Van Den Broeck study
 ├── tests/                     # pytest suite
 └── docs/assets/               # images used by this README
 ```
@@ -251,6 +258,23 @@ and the curvature radius of eq. (20), placed at $w = 0.349$ where the printed
 profile has $B - 1 \sim 10^{-18}$. The computation finds both near
 $w \approx 0.575$; they are not used as checks.
 
+With the same shift wall, the pocket adds a thin shell carrying both signs of
+energy and holds more space than its coordinate size: at the default parameters
+10 m of coordinate radius hold 110 m of proper radius.
+
+![Alcubierre and Van Den Broeck on identical axes](docs/assets/05_comparison.png)
+
+Where the thirty orders of magnitude come from, and where they stop: holding the
+pocket at 100 m of proper radius and the wall at $10^2$ Planck lengths, and
+keeping the paper's proportions $\tilde R = \tilde\Delta = R/3$, the shift wall
+costs $\propto R^2$ while the transition region depends only on
+$(1 + \alpha)\tilde R$ and stays at $-0.69$ and $+2.45\,M_\odot$ for any neck
+much smaller than the pocket. Shrinking the neck pays off until the wall drops
+below the transition region, near the paper's $R = 3 \times 10^{-15}$ m; below
+that the budget has a floor.
+
+![Exotic mass against neck radius](docs/assets/06_neck_scaling.png)
+
 ## Sample output
 
 For $R = 100$ m, $1/\sigma = 10$ m, $v_s = 10c$:
@@ -319,8 +343,8 @@ longer faster than light.
 
 ## Roadmap
 
-The comparison plots for Van Den Broeck's bubble come next, then null-geodesic
-ray tracing; the plan and its status live in **[ROADMAP.md](ROADMAP.md)**.
+Null-geodesic ray tracing comes next, for both metrics; the plan and its status
+live in **[ROADMAP.md](ROADMAP.md)**.
 
 ## References
 
