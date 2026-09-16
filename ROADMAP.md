@@ -26,12 +26,12 @@ the test suite; unchecked ones are planned.
       expansion exactly, prefactor included. It is now the source of truth for
       the physics: the expressions in `metrics/` are the fast numpy path,
       written by reading the derivation, and a test holds the two together.
-- [x] **Packaging and tests** — `src` layout, CLI driver, 36 tests pinning the
+- [x] **Packaging and tests** — `src` layout, CLI driver, and a test suite pinning the
       invariants a sign error would not crash on.
 
 ## 1. Van Den Broeck's two-scale bubble
 
-- [ ] $B(r_s)$ volume profile in `shapes.py`: the polynomial of the 1999 paper,
+- [x] $B(r_s)$ volume profile in `shapes.py`: the polynomial of the 1999 paper,
       $B = 1 + \alpha\left[n w^{n-1} - (n-1) w^n\right]$ with
       $w = (\tilde R + \tilde\Delta - r_s)/\tilde\Delta$
 - [ ] `BroeckMetric` overriding `conformal_factor`, written from the derivation
