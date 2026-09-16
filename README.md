@@ -311,10 +311,10 @@ Scaling of the required exotic mass, in solar masses:
 | $v_s/c$ | $R = 10 \~ \text{m}$ | $R = 100 \~ \text{m}$ | $R = 1000 \~ \text{m}$ |
 | --- | --- | --- | --- |
 | $0.5$ | $-9.7 \times 10^{-5}$ | $-4.7 \times 10^{-3}$ | $-4.7 \times 10^{-1}$ |
-| $1$ | $-3.9 \times 10^{-4}$ | $-1.9 \times 10^{-2}$ | $-1.9 \times 10^{0}$ |
-| $2$ | $-1.6 \times 10^{-3}$ | $-7.6 \times 10^{-2}$ | $-7.5 \times 10^{0}$ |
-| $10$ | $-3.9 \times 10^{-2}$ | $-1.9 \times 10^{0}$ | $-1.9 \times 10^{2}$ |
-| $100$ | $-3.9 \times 10^{0}$ | $-1.9 \times 10^{2}$ | $-1.9 \times 10^{4}$ |
+| $1$ | $-3.9 \times 10^{-4}$ | $-1.9 \times 10^{-2}$ | $-1.9$ |
+| $2$ | $-1.6 \times 10^{-3}$ | $-7.6 \times 10^{-2}$ | $-7.5$ |
+| $10$ | $-3.9 \times 10^{-2}$ | $-1.9$ | $-1.9 \times 10^{2}$ |
+| $100$ | $-3.9$ | $-1.9 \times 10^{2}$ | $-1.9 \times 10^{4}$ |
 
 $E \propto v_s^2 R^2 \sigma$. Alcubierre's own thin-wall estimate gave a
 *negative* mass larger than the whole visible universe; the numbers above are
