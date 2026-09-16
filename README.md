@@ -160,7 +160,7 @@ Holding the two together:
 | derived $\varepsilon$ vs the published Alcubierre density | difference exactly `0` |
 | derived $\theta$ vs the published expansion | difference exactly `0` |
 | derived vs `AlcubierreMetric.energy_density`, on a 400x400 grid | agreement to `5e-16` |
-| cost of one derivation | 1.3 s (Alcubierre), 8.8 s (general $B$) |
+| cost of one derivation | 1.3 s ($B = 1$), 8.8 s (general $B$) |
 | cost of evaluating the grid | 3.3 ms derived, 4.2 ms hand-written |
 
 The numerical bridge feeds the package's own numpy shape functions into the
@@ -254,17 +254,12 @@ E_B = \frac{c^4}{2G}\int_0^\infty \frac{B'^2}{B}\,r^2\,dr > 0
 so the budget is reported as a negative and a positive part. For the paper's
 configuration ($n = 80$, $v_s = c$, a shift wall of $10^2$ Planck lengths):
 
-```math
-\begin{array}{lrr}
-\text{part} & \text{computed} & \text{published} \\[2pt]
-\hline
-\text{transition region, } E_- & -1.38 \times 10^{30}\ \text{kg} & -1.4 \times 10^{30}\ \text{kg} \\[2pt]
-\text{transition region, } E_+ & +4.87 \times 10^{30}\ \text{kg} & +4.9 \times 10^{30}\ \text{kg} \\[2pt]
-\text{shift wall, } E_- & -2.08 \times 10^{29}\ \text{kg} & -6.3 \times 10^{29}\ \text{kg} \\[2pt]
-\hline
-\text{total} & -0.80\,M_\odot \ \text{and} \ +2.45\,M_\odot &
-\end{array}
-```
+| part | computed | published |
+| --- | --- | --- |
+| transition region, $E_-$ | $-1.38 \times 10^{30} \~ \text{kg}$ | $-1.4 \times 10^{30} \~ \text{kg}$ |
+| transition region, $E_+$ | $+4.87 \times 10^{30} \~ \text{kg}$ | $+4.9 \times 10^{30} \~ \text{kg}$ |
+| shift wall, $E_-$ | $-2.08 \times 10^{29} \~ \text{kg}$ | $-6.3 \times 10^{29} \~ \text{kg}$ |
+| total | $-0.80 \~ M_\odot$ and $+2.45 \~ M_\odot$ | |
 
 The shift wall does not match because the paper uses a different profile $f$;
 only its order of magnitude is comparable. For scale: an Alcubierre bubble of
@@ -313,17 +308,13 @@ Proxima Centauri, 4.2465 ly
 
 Scaling of the required exotic mass, in solar masses:
 
-```math
-\begin{array}{r|rrr}
-v_s/c & R = 10\ \text{m} & R = 100\ \text{m} & R = 1000\ \text{m} \\[2pt]
-\hline
-0.5 & -9.7 \times 10^{-5} & -4.7 \times 10^{-3} & -4.7 \times 10^{-1} \\[2pt]
-1 & -3.9 \times 10^{-4} & -1.9 \times 10^{-2} & -1.9 \times 10^{0} \\[2pt]
-2 & -1.6 \times 10^{-3} & -7.6 \times 10^{-2} & -7.5 \times 10^{0} \\[2pt]
-10 & -3.9 \times 10^{-2} & -1.9 \times 10^{0} & -1.9 \times 10^{2} \\[2pt]
-100 & -3.9 \times 10^{0} & -1.9 \times 10^{2} & -1.9 \times 10^{4}
-\end{array}
-```
+| $v_s/c$ | $R = 10 \~ \text{m}$ | $R = 100 \~ \text{m}$ | $R = 1000 \~ \text{m}$ |
+| --- | --- | --- | --- |
+| $0.5$ | $-9.7 \times 10^{-5}$ | $-4.7 \times 10^{-3}$ | $-4.7 \times 10^{-1}$ |
+| $1$ | $-3.9 \times 10^{-4}$ | $-1.9 \times 10^{-2}$ | $-1.9 \times 10^{0}$ |
+| $2$ | $-1.6 \times 10^{-3}$ | $-7.6 \times 10^{-2}$ | $-7.5 \times 10^{0}$ |
+| $10$ | $-3.9 \times 10^{-2}$ | $-1.9 \times 10^{0}$ | $-1.9 \times 10^{2}$ |
+| $100$ | $-3.9 \times 10^{0}$ | $-1.9 \times 10^{2}$ | $-1.9 \times 10^{4}$ |
 
 $E \propto v_s^2 R^2 \sigma$. Alcubierre's own thin-wall estimate gave a
 *negative* mass larger than the whole visible universe; the numbers above are
