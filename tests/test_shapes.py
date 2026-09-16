@@ -14,6 +14,7 @@ from warpdrive.shapes import (
     sech2,
     tanh_top_hat,
     tanh_top_hat_derivative,
+    tanh_top_hat_derivative_from_wall,
     wall_thickness,
 )
 
@@ -64,6 +65,18 @@ def test_derivative_matches_finite_differences():
     analytic = tanh_top_hat_derivative(r, RADIUS, SIGMA)
 
     assert np.allclose(numeric, analytic, atol=1.0e-9)
+
+
+def test_derivative_from_the_wall_matches_the_derivative_in_r():
+    """Same function, different variable: must agree wherever r resolves."""
+
+    r = np.linspace(0.0, 4.0 * RADIUS, 2000)
+    assert np.allclose(
+        tanh_top_hat_derivative_from_wall(r - RADIUS, RADIUS, SIGMA),
+        tanh_top_hat_derivative(r, RADIUS, SIGMA),
+        rtol=1e-12,
+        atol=1e-15,
+    )
 
 
 def test_derivative_is_confined_to_the_wall():

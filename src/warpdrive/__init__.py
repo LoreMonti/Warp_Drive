@@ -19,6 +19,7 @@ from .shapes import (
     broeck_volume_profile_second_derivative,
     tanh_top_hat,
     tanh_top_hat_derivative,
+    tanh_top_hat_derivative_from_wall,
     wall_thickness,
 )
 from .tracers import integrate_tracers, make_tracer_grid
@@ -37,6 +38,7 @@ __all__ = [
     "make_tracer_grid",
     "tanh_top_hat",
     "tanh_top_hat_derivative",
+    "tanh_top_hat_derivative_from_wall",
     "wall_thickness",
     "broeck_volume_profile",
     "broeck_volume_profile_derivative",

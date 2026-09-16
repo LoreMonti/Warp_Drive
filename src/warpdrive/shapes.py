@@ -69,6 +69,30 @@ def tanh_top_hat_derivative(r, radius, sigma):
     )
 
 
+def tanh_top_hat_derivative_from_wall(offset, radius, sigma):
+    """
+    df/dr of `tanh_top_hat`, written as a function of the distance from
+    the wall, offset = r - R:
+
+        df/dr = sigma [sech^2(sigma (2R + s)) - sech^2(sigma s)]
+                / [2 tanh(sigma R)]
+
+    Algebraically identical to `tanh_top_hat_derivative`, but it never
+    forms R + s. A wall much thinner than its radius cannot be resolved
+    in r at all: for R = 3e-15 m and a wall of 1e2 Planck lengths,
+    R / (1/sigma) ~ 2e18 exceeds the ~9e15 range of double precision,
+    so every r across the wall rounds to the same number. The offset
+    stays representable, and the energy budget integrates over it.
+    """
+
+    s = np.asarray(offset, dtype=float)
+    return (
+        sigma
+        * (sech2(sigma * (2.0 * radius + s)) - sech2(sigma * s))
+        / (2.0 * math.tanh(sigma * radius))
+    )
+
+
 def _broeck_coordinate(r, inner_radius, thickness, order, alpha):
     """
     Validate the parameters of the Van Den Broeck profile and map r onto
