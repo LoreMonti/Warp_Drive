@@ -8,11 +8,13 @@
 # Author: Lorenzo Monti
 # ==========================================================
 
+import math
+
 import numpy as np
 import pytest
 
-from warpdrive import AlcubierreMetric, BroeckMetric
-from warpdrive.constants import C_LIGHT, G
+from warpdrive import AlcubierreMetric, BroeckMetric, neck_scaling
+from warpdrive.constants import C_LIGHT, G, L_PLANCK
 from warpdrive.shapes import broeck_volume_profile_derivative
 
 
@@ -158,3 +160,56 @@ def test_overlapping_regions_are_rejected():
 def test_invalid_profile_parameters_are_rejected():
     with pytest.raises(ValueError):
         BroeckMetric(speed=C_LIGHT, alpha=-2.0)
+
+
+# --- Neck radius scan ---
+NECKS = np.logspace(math.log10(3.0e-15), 1.0, 8)
+
+
+@pytest.fixture(scope="module")
+def scan():
+    return neck_scaling(NECKS)
+
+
+def test_neck_scan_starts_from_the_paper(scan, paper):
+    """R = 3e-15 m with a 100 m pocket is exactly the 1999 configuration."""
+
+    transition = paper.transition_energy_budget()
+    total = paper.energy_budget_analytic()
+
+    assert scan.transition_negative[0] == pytest.approx(transition.negative,
+                                                        rel=1e-6)
+    assert scan.transition_positive[0] == pytest.approx(transition.positive,
+                                                        rel=1e-6)
+    assert scan.wall[0] == pytest.approx(total.negative - transition.negative,
+                                         rel=1e-9)
+
+
+def test_wall_energy_scales_with_the_square_of_the_neck(scan):
+    slopes = np.diff(np.log(-scan.wall)) / np.diff(np.log(scan.neck_radius))
+    assert np.allclose(slopes, 2.0, atol=1e-6)
+
+
+def test_transition_energy_does_not_depend_on_the_neck(scan):
+    """
+    With R~ = D~ and (1 + alpha) R~ fixed, the transition region only sees
+    the pocket, as long as the pocket is much larger than the neck.
+    """
+
+    small = scan.neck_radius < 1.0e-2
+    for part in (scan.transition_negative, scan.transition_positive):
+        values = part[small]
+        assert np.ptp(values) < 0.01 * np.abs(values).mean()
+
+
+def test_alcubierre_reference_is_a_pocket_sized_bubble(scan):
+    reference = AlcubierreMetric(speed=C_LIGHT, radius=100.0,
+                                 sigma=1.0 / (1.0e2 * L_PLANCK))
+
+    assert scan.alcubierre == reference.energy_budget_analytic().negative
+    assert np.all(scan.total_negative > scan.alcubierre)
+
+
+def test_neck_larger_than_the_pocket_is_rejected():
+    with pytest.raises(ValueError):
+        neck_scaling([400.0])

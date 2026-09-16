@@ -7,7 +7,9 @@
 from .constants import C_LIGHT, D_PROXIMA, G, LY, M_SUN, YEAR
 from .diagnostics import (
     MissionProfile,
+    NeckScaling,
     energy_scaling_table,
+    neck_scaling,
     format_profile,
     profile_mission,
     relativistic_rocket,
@@ -35,6 +37,8 @@ __all__ = [
     "profile_mission",
     "format_profile",
     "energy_scaling_table",
+    "NeckScaling",
+    "neck_scaling",
     "relativistic_rocket",
     "integrate_tracers",
     "make_tracer_grid",
