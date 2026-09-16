@@ -8,12 +8,12 @@ the test suite; unchecked ones are planned.
 - [x] **Alcubierre metric** — shape function $f(r_s)$, shift $\beta = v_s f$,
       expansion scalar, Eulerian energy density.
 - [x] **`WarpMetric` interface** — the 3+1 form
-      $ds^2 = -c^2 dt^2 + B^2[(dx - \beta\,dt)^2 + dy^2 + dz^2]$, so a metric is
+      $`ds^2 = -c^2 dt^2 + B^2[(dx - \beta\,dt)^2 + dy^2 + dz^2]`$, so a metric is
       fixed by two radial profiles and a second spacetime can be added without
       touching the driver or the figures.
 - [x] **Energy budget** — generic quadrature carrying $\sqrt{\gamma} = B^3$ in
       the base class, plus the Alcubierre closed form
-      $E = -\dfrac{c^2 v_s^2}{12G}\displaystyle\int_0^\infty \left(\frac{df}{dr}\right)^2 r^2\,dr$.
+      $`E = -\dfrac{c^2 v_s^2}{12G}\displaystyle\int_0^\infty \left(\frac{df}{dr}\right)^2 r^2\,dr`$.
 - [x] **Causal structure** — horizon solver for $\beta + c/B = v_s$, reducing to
       $f = 1 - c/v_s$ for Alcubierre.
 - [x] **Proper time** — evaluated from the line element rather than assumed.
@@ -62,13 +62,29 @@ mass of the visible universe. His geometry brings that down to **a few solar
 masses of negative energy, accompanied by a comparable amount of positive
 energy** stored in the transition region of $B$. The reduction is relative to
 that Planck-thin wall, not to the 10 m wall used in this package, which already
-gives $-1.9\,M_\odot$ at $v_s = 10c$; applying the same factor to our numbers
+gives $`-1.9\,M_\odot`$ at $v_s = 10c$; applying the same factor to our numbers
 would be meaningless. The budget for this package's parameters will come out of
 the computation, not out of the paper.
 
 This is also the first real test of the `WarpMetric` abstraction, which is why
 it comes before the ray tracer: it is the cheapest way to find out whether the
 interface was designed correctly, before anything larger is built on top of it.
+
+With the two regions separated, `symbolic.py` gives
+
+```math
+\varepsilon = \frac{c^4}{8\pi G}\left[\frac{B'^2}{B^4} - \frac{2B''}{B^3} - \frac{4B'}{r_s B^3}\right] - \frac{c^2 v_s^2}{32\pi G}\,\frac{\rho^2}{r_s^2}\,f'^2
+```
+
+i.e. a static term from the curvature of $\gamma_{ij} = B^2\delta_{ij}$ plus the
+Alcubierre term, and the expansion is the Alcubierre one. The static term
+matches eq. (11) of the paper. It changes sign pointwise, but writing
+$\psi = \sqrt{B}$ and integrating by parts gives a strictly positive net budget,
+which is the closed-form check in the list above:
+
+```math
+E_B = \frac{c^4}{2G}\int_0^\infty \frac{B'^2}{B}\,r^2\,dr
+```
 
 Implementation notes:
 
@@ -84,18 +100,9 @@ Implementation notes:
 - the energy density is no longer sign-definite: the transition region of $B$
   carries $\varepsilon > 0$, so the $\varepsilon \leq 0$ invariant of the
   Alcubierre tests must not be reused for `BroeckMetric`;
-- with the two regions separated, `symbolic.py` gives
-  $$\varepsilon = \frac{c^4}{8\pi G}\left[\frac{B'^2}{B^4} - \frac{2B''}{B^3} - \frac{4B'}{r_s B^3}\right] - \frac{c^2 v_s^2}{32\pi G}\,\frac{\rho^2}{r_s^2}\,f'^2$$
-  i.e. a static term from the curvature of $\gamma_{ij} = B^2\delta_{ij}$ plus
-  the Alcubierre term, and the expansion is the Alcubierre one. The static term
-  matches eq. (11) of the paper. It changes sign pointwise, but writing
-  $\psi = \sqrt{B}$ and integrating by parts gives a strictly positive net
-  budget,
-  $$E_B = \frac{c^4}{2G}\int_0^\infty \frac{B'^2}{B}\,r^2\,dr$$
-  which is the closed-form check above;
 - the published numbers to reproduce, for $n = 80$, $\alpha = 10^{17}$,
   $\tilde R = \tilde\Delta = 10^{-15}$ m: $E_{II,-} = -1.4 \times 10^{30}$ kg,
-  $E_{II,+} = 4.9 \times 10^{30}$ kg, sign change at $w = 0.981$. A
+  $E_{II,+} = 4.9 \times 10^{30}$ kg, sign change at $w = 0.981$.
   `BroeckMetric.from_paper()` reproduces all three ($-1.38$, $4.87$,
   $0.981$) and the closed form gives the same net $3.49 \times 10^{30}$ kg,
   all pinned by tests. The same quadrature does *not* reproduce the peak
@@ -127,7 +134,9 @@ requirements*, Class. Quantum Grav. **16**, 3973 (1999).
 
 When the two regions overlap, the derivation adds
 
-$$\varepsilon_{\mathrm{coupling}} = \frac{c^2 v_s^2}{8\pi G}\,\frac{x_s^2}{r_s^2}\left[3\left(\frac{B'}{B}\right)^2(1-f)^2 - 2\,\frac{B'}{B}\,f'\,(1-f)\right], \qquad \theta = v_s\,\frac{x_s}{r_s}\left[f' - 3\,\frac{B'}{B}\,(1-f)\right]$$
+```math
+\varepsilon_{\mathrm{coupling}} = \frac{c^2 v_s^2}{8\pi G}\,\frac{x_s^2}{r_s^2}\left[3\left(\frac{B'}{B}\right)^2(1-f)^2 - 2\,\frac{B'}{B}\,f'\,(1-f)\right], \qquad \theta = v_s\,\frac{x_s}{r_s}\left[f' - 3\,\frac{B'}{B}\,(1-f)\right]
+```
 
 Both vanish identically when $B' = 0$ wherever $f \neq 1$, which is why the
 separated case comes first: it can be checked term by term against the paper.
@@ -151,13 +160,15 @@ The metric is not static, so the geodesics have to be integrated in the full 4D
 spacetime rather than reduced to an effective potential.
 
 A sign convention has to be fixed first. In this package $\beta = v_s f(r_s)$
-is the *drag velocity*, entering the line element as $(dx - \beta\,dt)$. The
-standard ADM shift enters as $(dx^i + \beta^i_{\mathrm{ADM}}\,dt)$, so
+is the *drag velocity*, entering the line element as $`(dx - \beta\,dt)`$. The
+standard ADM shift enters as $`(dx^i + \beta^i_{\mathrm{ADM}}\,dt)`$, so
 $\beta^x_{\mathrm{ADM}} = -\beta$. With lapse $\alpha = c$ and spatial metric
 $\gamma_{ij} = B^2 \delta_{ij}$, the general photon Hamiltonian
-$H = \alpha\sqrt{\gamma^{ij} p_i p_j} - \beta^i_{\mathrm{ADM}}\, p_i$ becomes
+$`H = \alpha\sqrt{\gamma^{ij} p_i p_j} - \beta^i_{\mathrm{ADM}}\, p_i`$ becomes
 
-$$H = \frac{c}{B}\sqrt{\delta^{ij} p_i p_j} + \beta\, p_x$$
+```math
+H = \frac{c}{B}\sqrt{\delta^{ij} p_i p_j} + \beta\, p_x
+```
 
 so the ray equations are $\dot{x}^i = \partial H / \partial p_i$ and
 $\dot{p}_i = -\partial H / \partial x^i$, with the shift and $B$ supplying all

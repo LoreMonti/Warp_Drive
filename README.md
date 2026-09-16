@@ -6,13 +6,17 @@ wrapped around a central hull.
 
 The metric, in ADM (3+1) form, is
 
-$$ds^2 = -c^2 dt^2 + \left(dx - v_s f(r_s)\,dt\right)^2 + dy^2 + dz^2$$
+```math
+ds^2 = -c^2 dt^2 + \left(dx - v_s f(r_s)\,dt\right)^2 + dy^2 + dz^2
+```
 
 with the bubble centred on $x_s(t)$, $v_s = dx_s/dt$, and
 $r_s = \sqrt{(x - x_s)^2 + y^2 + z^2}$. The shape function $f$ goes from 1
 inside the bubble to 0 outside:
 
-$$f(r_s) = \frac{\tanh\left(\sigma(r_s + R)\right) - \tanh\left(\sigma(r_s - R)\right)}{2\tanh(\sigma R)}$$
+```math
+f(r_s) = \frac{\tanh\left(\sigma(r_s + R)\right) - \tanh\left(\sigma(r_s - R)\right)}{2\tanh(\sigma R)}
+```
 
 Both regions are **exactly flat**. All the curvature lives in a wall of
 thickness $\sim 1/\sigma$ at $r_s = R$. The ship never moves through space: it
@@ -107,7 +111,9 @@ Entries marked `[roadmap N]` are planned, not yet written; see
 
 Every metric is written in the ADM form
 
-$$ds^2 = -c^2 dt^2 + B(r_s)^2\left[\left(dx - \beta(r_s)\,dt\right)^2 + dy^2 + dz^2\right]$$
+```math
+ds^2 = -c^2 dt^2 + B(r_s)^2\left[\left(dx - \beta(r_s)\,dt\right)^2 + dy^2 + dz^2\right]
+```
 
 so a concrete spacetime is fixed by two radial profiles: the shift $\beta$,
 which drags the coordinates, and the conformal factor $B$, which inflates
@@ -154,7 +160,7 @@ Holding the two together:
 | derived $\varepsilon$ vs the published Alcubierre density | difference exactly `0` |
 | derived $\theta$ vs the published expansion | difference exactly `0` |
 | derived vs `AlcubierreMetric.energy_density`, on a 400x400 grid | agreement to `5e-16` |
-| cost of one derivation | 1.3 s ($B = 1$), 8.8 s (general $B$) |
+| cost of one derivation | 1.3 s (Alcubierre), 8.8 s (general $B$) |
 | cost of evaluating the grid | 3.3 ms derived, 4.2 ms hand-written |
 
 The numerical bridge feeds the package's own numpy shape functions into the
@@ -173,13 +179,17 @@ rather than strengthen it.
 positive behind it (space expanding), reproducing the surface from the original
 paper:
 
-$$\theta = v_s \frac{x_s}{r_s} \frac{df}{dr_s}$$
+```math
+\theta = v_s \frac{x_s}{r_s} \frac{df}{dr_s}
+```
 
 ![Expansion scalar](docs/assets/02_expansion_scalar.png)
 
 **Energy density** seen by Eulerian observers, with $\rho^2 = y^2 + z^2$:
 
-$$\varepsilon = -\frac{c^4}{8\pi G}\frac{v_s^2}{c^2}\frac{\rho^2}{4 r_s^2}\left(\frac{df}{dr_s}\right)^2$$
+```math
+\varepsilon = -\frac{c^4}{8\pi G}\frac{v_s^2}{c^2}\frac{\rho^2}{4 r_s^2}\left(\frac{df}{dr_s}\right)^2
+```
 
 It is **negative everywhere it is non-zero** — the drive violates the weak
 energy condition — and its distribution is a **torus** around the axis of
@@ -190,10 +200,12 @@ the rings mark where the exotic matter has to be held.
 ![Negative-energy shell and twin-ring hull](docs/assets/04_shell_3d.png)
 
 **Energy budget** — the angular integral is analytic,
-$\int (\rho^2/r^2)\,d\Omega = 8\pi/3$, which collapses the budget to a single
+$`\int (\rho^2/r^2)\,d\Omega = 8\pi/3`$, which collapses the budget to a single
 radial quadrature:
 
-$$E = -\frac{c^2 v_s^2}{12 G}\int_0^\infty \left(\frac{df}{dr}\right)^2 r^2\,dr$$
+```math
+E = -\frac{c^2 v_s^2}{12 G}\int_0^\infty \left(\frac{df}{dr}\right)^2 r^2\,dr
+```
 
 The integral is taken over the distance from the wall, $s = r - R$, rather
 than over $r$. A wall of $10^2$ Planck lengths around a femtometre bubble has
@@ -226,24 +238,33 @@ transition inside the flat interior of $f$.
 
 Running the derivation with $B$ abstract gives, in that configuration,
 
-$$\varepsilon = \frac{c^4}{8\pi G}\left[\frac{B'^2}{B^4} - \frac{2B''}{B^3} - \frac{4B'}{r_s B^3}\right] - \frac{c^2 v_s^2}{32\pi G}\,\frac{\rho^2}{r_s^2}\,f'^2$$
+```math
+\varepsilon = \frac{c^4}{8\pi G}\left[\frac{B'^2}{B^4} - \frac{2B''}{B^3} - \frac{4B'}{r_s B^3}\right] - \frac{c^2 v_s^2}{32\pi G}\,\frac{\rho^2}{r_s^2}\,f'^2
+```
 
 and the expansion is Alcubierre's. The first term does not depend on $v_s$:
 inflating volume costs energy even at rest. It changes sign inside the
 transition region, but with $\psi = \sqrt{B}$ an integration by parts shows
 its total is strictly positive,
 
-$$E_B = \frac{c^4}{2G}\int_0^\infty \frac{B'^2}{B}\,r^2\,dr > 0$$
+```math
+E_B = \frac{c^4}{2G}\int_0^\infty \frac{B'^2}{B}\,r^2\,dr > 0
+```
 
 so the budget is reported as a negative and a positive part. For the paper's
 configuration ($n = 80$, $v_s = c$, a shift wall of $10^2$ Planck lengths):
 
-| part | computed | published |
-| --- | ---: | ---: |
-| transition region, $E_-$ | $-1.38 \times 10^{30}$ kg | $-1.4 \times 10^{30}$ kg |
-| transition region, $E_+$ | $+4.87 \times 10^{30}$ kg | $+4.9 \times 10^{30}$ kg |
-| shift wall, $E_-$ | $-2.08 \times 10^{29}$ kg | $-6.3 \times 10^{29}$ kg |
-| total | $-0.80\,M_\odot$ and $+2.45\,M_\odot$ | |
+```math
+\begin{array}{lrr}
+\text{part} & \text{computed} & \text{published} \\[2pt]
+\hline
+\text{transition region, } E_- & -1.38 \times 10^{30}\ \text{kg} & -1.4 \times 10^{30}\ \text{kg} \\[2pt]
+\text{transition region, } E_+ & +4.87 \times 10^{30}\ \text{kg} & +4.9 \times 10^{30}\ \text{kg} \\[2pt]
+\text{shift wall, } E_- & -2.08 \times 10^{29}\ \text{kg} & -6.3 \times 10^{29}\ \text{kg} \\[2pt]
+\hline
+\text{total} & -0.80\,M_\odot \ \text{and} \ +2.45\,M_\odot &
+\end{array}
+```
 
 The shift wall does not match because the paper uses a different profile $f$;
 only its order of magnitude is comparable. For scale: an Alcubierre bubble of
@@ -268,7 +289,7 @@ Where the thirty orders of magnitude come from, and where they stop: holding the
 pocket at 100 m of proper radius and the wall at $10^2$ Planck lengths, and
 keeping the paper's proportions $\tilde R = \tilde\Delta = R/3$, the shift wall
 costs $\propto R^2$ while the transition region depends only on
-$(1 + \alpha)\tilde R$ and stays at $-0.69$ and $+2.45\,M_\odot$ for any neck
+$(1 + \alpha)\tilde R$ and stays at $-0.69$ and $`+2.45\,M_\odot`$ for any neck
 much smaller than the pocket. Shrinking the neck pays off until the wall drops
 below the transition region, near the paper's $R = 3 \times 10^{-15}$ m; below
 that the budget has a floor.
@@ -292,13 +313,17 @@ Proxima Centauri, 4.2465 ly
 
 Scaling of the required exotic mass, in solar masses:
 
-| $v_s/c$ | $R = 10$ m | $R = 100$ m | $R = 1000$ m |
-| ---: | ---: | ---: | ---: |
-| 0.5 | $-9.7 \times 10^{-5}$ | $-4.7 \times 10^{-3}$ | $-4.7 \times 10^{-1}$ |
-| 1 | $-3.9 \times 10^{-4}$ | $-1.9 \times 10^{-2}$ | $-1.9 \times 10^{0}$ |
-| 2 | $-1.6 \times 10^{-3}$ | $-7.6 \times 10^{-2}$ | $-7.5 \times 10^{0}$ |
-| 10 | $-3.9 \times 10^{-2}$ | $-1.9 \times 10^{0}$ | $-1.9 \times 10^{2}$ |
-| 100 | $-3.9 \times 10^{0}$ | $-1.9 \times 10^{2}$ | $-1.9 \times 10^{4}$ |
+```math
+\begin{array}{r|rrr}
+v_s/c & R = 10\ \text{m} & R = 100\ \text{m} & R = 1000\ \text{m} \\[2pt]
+\hline
+0.5 & -9.7 \times 10^{-5} & -4.7 \times 10^{-3} & -4.7 \times 10^{-1} \\[2pt]
+1 & -3.9 \times 10^{-4} & -1.9 \times 10^{-2} & -1.9 \times 10^{0} \\[2pt]
+2 & -1.6 \times 10^{-3} & -7.6 \times 10^{-2} & -7.5 \times 10^{0} \\[2pt]
+10 & -3.9 \times 10^{-2} & -1.9 \times 10^{0} & -1.9 \times 10^{2} \\[2pt]
+100 & -3.9 \times 10^{0} & -1.9 \times 10^{2} & -1.9 \times 10^{4}
+\end{array}
+```
 
 $E \propto v_s^2 R^2 \sigma$. Alcubierre's own thin-wall estimate gave a
 *negative* mass larger than the whole visible universe; the numbers above are
