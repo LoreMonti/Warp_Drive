@@ -31,13 +31,17 @@ the test suite; unchecked ones are planned.
 
 ## 1. Van Den Broeck's two-scale bubble
 
-- [ ] $B(r_s)$ volume profile in `shapes.py`
+- [ ] $B(r_s)$ volume profile in `shapes.py`: the polynomial of the 1999 paper,
+      $B = 1 + \alpha\left[n w^{n-1} - (n-1) w^n\right]$ with
+      $w = (\tilde R + \tilde\Delta - r_s)/\tilde\Delta$
 - [ ] `BroeckMetric` overriding `conformal_factor`, written from the derivation
-      rather than transcribed from the 1999 paper
-- [ ] Cross-check the result against the published expression, as an
-      independent third opinion
-- [ ] Expansion and energy density from `symbolic.py`, run with
-      `conformal=True`
+      rather than transcribed from the 1999 paper, with the transition region of
+      $B$ kept inside the flat interior of $f$
+- [ ] Energy budget split into its negative and positive parts, on a radial
+      grid that resolves each wall
+- [ ] Closed-form check of the net budget of the $B$ region (see below)
+- [ ] Cross-check against the published numbers, as an independent third
+      opinion
 - [ ] Energy scaling plot: exotic mass vs neck radius
 - [ ] Side-by-side comparison with Alcubierre on identical axes
 
@@ -66,15 +70,34 @@ interface was designed correctly, before anything larger is built on top of it.
 
 Implementation notes:
 
-- the generic quadrature in `WarpMetric.total_exotic_energy` already carries
-  the $\sqrt{\gamma} = B^3$ factor, so the budget needs no new integrator, and
-  the test comparing it against the Alcubierre closed form guards the shared
-  path;
+- `WarpMetric.total_exotic_energy` already carries the $\sqrt{\gamma} = B^3$
+  factor, but it returns the *net* integral on a uniform radial grid. Both
+  have to change: the net number mixes the negative and positive parts, and a
+  uniform grid cannot resolve walls whose thickness is many orders of magnitude
+  below the bubble radius. The test comparing it against the Alcubierre closed
+  form guards the shared path while this is reworked;
 - the energy density is no longer sign-definite: the transition region of $B$
   carries $\varepsilon > 0$, so the $\varepsilon \leq 0$ invariant of the
-  Alcubierre tests must not be reused for `BroeckMetric`, and the budget has to
-  be reported as separate negative and positive parts rather than a single net
-  number;
+  Alcubierre tests must not be reused for `BroeckMetric`;
+- with the two regions separated, `symbolic.py` gives
+  $$\varepsilon = \frac{c^4}{8\pi G}\left[\frac{B'^2}{B^4} - \frac{2B''}{B^3} - \frac{4B'}{r_s B^3}\right] - \frac{c^2 v_s^2}{32\pi G}\,\frac{\rho^2}{r_s^2}\,f'^2$$
+  i.e. a static term from the curvature of $\gamma_{ij} = B^2\delta_{ij}$ plus
+  the Alcubierre term, and the expansion is the Alcubierre one. The static term
+  matches eq. (11) of the paper. It changes sign pointwise, but writing
+  $\psi = \sqrt{B}$ and integrating by parts gives a strictly positive net
+  budget,
+  $$E_B = \frac{c^4}{2G}\int_0^\infty \frac{B'^2}{B}\,r^2\,dr$$
+  which is the closed-form check above;
+- the published numbers to reproduce, for $n = 80$, $\alpha = 10^{17}$,
+  $\tilde R = \tilde\Delta = 10^{-15}$ m: $E_{II,-} = -1.4 \times 10^{30}$ kg,
+  $E_{II,+} = 4.9 \times 10^{30}$ kg, sign change at $w = 0.981$. A
+  preliminary high-precision quadrature reproduces all three
+  ($-1.38$, $4.87$, $0.9812$) and the closed form gives the same net
+  $3.49 \times 10^{30}$ kg. The same quadrature does *not* reproduce the peak
+  density of eq. (14) or the curvature radius of eq. (20), which it finds near
+  $w \approx 0.575$ rather than $0.349$; at $w = 0.349$ the printed profile has
+  $B - 1 \sim 10^{-18}$. Those two numbers are not used as checks until the
+  discrepancy is understood;
 - `horizon_offset` already solves $\beta + c/B = v_s$, so the causal structure
   needs no changes either;
 - the figures and the driver take a metric, so the two spacetimes can be
@@ -86,6 +109,24 @@ Implementation notes:
 
 Reference: C. Van Den Broeck, *A "warp drive" with more reasonable total energy
 requirements*, Class. Quantum Grav. **16**, 3973 (1999).
+
+### 1b. Overlapping regions (later)
+
+- [ ] `BroeckMetric` variant with the transition region of $B$ overlapping the
+      wall of $f$
+- [ ] Coupling terms of the energy density and the modified expansion, from
+      the same derivation
+- [ ] Budget comparison against the separated configuration
+
+When the two regions overlap, the derivation adds
+
+$$\varepsilon_{\mathrm{coupling}} = \frac{c^2 v_s^2}{8\pi G}\,\frac{x_s^2}{r_s^2}\left[3\left(\frac{B'}{B}\right)^2(1-f)^2 - 2\,\frac{B'}{B}\,f'\,(1-f)\right], \qquad \theta = v_s\,\frac{x_s}{r_s}\left[f' - 3\,\frac{B'}{B}\,(1-f)\right]$$
+
+Both vanish identically when $B' = 0$ wherever $f \neq 1$, which is why the
+separated case comes first: it can be checked term by term against the paper.
+The overlapping case has no published reference to compare with, so it is the
+one where the derivation carries the whole weight, and it exercises terms of
+`symbolic.py` that nothing else in the suite reaches.
 
 ## 2. Null-geodesic ray tracing — the view from the bridge
 
