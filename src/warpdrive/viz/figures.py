@@ -47,6 +47,19 @@ def energy_norm(eps, decades=4):
                       vmax=peak, base=10)
 
 
+def energy_ticks(norm, step=1):
+    """
+    Ticks for a symmetric logarithmic energy scale: zero and every
+    `step`-th decade above the linear threshold, for both signs. Decades
+    inside the linear band are skipped, since they crowd around zero.
+    """
+
+    low = int(np.ceil(np.log10(norm.linthresh))) + 1
+    high = int(np.floor(np.log10(norm.vmax)))
+    decades = [10.0 ** k for k in range(high, low - 1, -step)]
+    return sorted([-d for d in decades] + [0.0] + decades)
+
+
 def energy_title(eps):
     """Describe the sign content of a density map from the data itself."""
 
@@ -162,7 +175,9 @@ def plot_energy_density(metric, path, extent=2.0, resolution=400):
     mesh = ax.pcolormesh(X / metric.radius, RHO / metric.radius, eps,
                          cmap=bubble_colormap(),
                          norm=energy_norm(eps), shading="auto")
-    style_colorbar(fig.colorbar(mesh, ax=ax, pad=0.02),
+    norm = mesh.norm
+    style_colorbar(fig.colorbar(mesh, ax=ax, pad=0.02,
+                                ticks=energy_ticks(norm)),
                    r"energy density  [J m$^{-3}$], symmetric log")
 
     ax.add_patch(plt.Circle((0, 0), 1.0, fill=False, color=ACCENT, lw=1.0,
