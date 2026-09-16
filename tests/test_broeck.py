@@ -13,7 +13,13 @@ import math
 import numpy as np
 import pytest
 
-from warpdrive import AlcubierreMetric, BroeckMetric, neck_scaling
+from warpdrive import (
+    AlcubierreMetric,
+    BroeckMetric,
+    format_profile,
+    neck_scaling,
+    profile_mission,
+)
 from warpdrive.constants import C_LIGHT, G, L_PLANCK
 from warpdrive.shapes import broeck_volume_profile_derivative
 
@@ -213,3 +219,20 @@ def test_alcubierre_reference_is_a_pocket_sized_bubble(scan):
 def test_neck_larger_than_the_pocket_is_rejected():
     with pytest.raises(ValueError):
         neck_scaling([400.0])
+
+
+def test_mission_report_for_the_paper_configuration():
+    """
+    At 10c the horizon of the paper's bubble sits in a Planck-thin wall
+    that cannot be bisected: the report must say so rather than fail.
+    """
+
+    profile = profile_mission(BroeckMetric.from_paper(speed=10.0 * C_LIGHT))
+    report = format_profile(profile)
+
+    assert profile.horizon is None
+    assert not profile.horizon_resolved
+    assert profile.pocket_radius == pytest.approx(100.0)
+    assert profile.energy.positive > 0.0
+    assert "too thin" in report
+    assert "pocket" in report

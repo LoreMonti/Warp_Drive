@@ -48,7 +48,16 @@ class MissionProfile:
 
     energy: EnergyBudget
 
+    #: Offset of the horizon ahead of the ship [m]; None when there is
+    #: none, or when `horizon_resolved` is False.
     horizon: float | None
+
+    #: False when the horizon lies in a wall too thin to be located in
+    #: double precision.
+    horizon_resolved: bool = True
+
+    #: Proper radius of an inflated pocket, for metrics that have one [m].
+    pocket_radius: float | None = None
 
 
 def relativistic_rocket(distance, accel=G_EARTH):
@@ -85,6 +94,13 @@ def profile_mission(metric, distance=D_PROXIMA, analytic_energy=True):
 
     tau_rocket, t_rocket = relativistic_rocket(distance)
 
+    try:
+        horizon, resolved = metric.horizon_offset(), True
+    except ValueError:
+        horizon, resolved = None, False
+
+    pocket = getattr(metric, "pocket_proper_radius", None)
+
     return MissionProfile(
         metric_name=metric.name,
         radius=metric.radius,
@@ -97,8 +113,18 @@ def profile_mission(metric, distance=D_PROXIMA, analytic_energy=True):
         rocket_proper_time=tau_rocket,
         rocket_coordinate_time=t_rocket,
         energy=energy,
-        horizon=metric.horizon_offset(),
+        horizon=horizon,
+        horizon_resolved=resolved,
+        pocket_radius=pocket() if pocket is not None else None,
     )
+
+
+def _length(value, decimals, width=12):
+    """Fixed-point metres at human scale, scientific notation below."""
+
+    if value >= 0.01:
+        return f"{value:>{width}.{decimals}f}"
+    return f"{value:>{width}.3e}"
 
 
 def format_profile(profile):
@@ -111,10 +137,12 @@ def format_profile(profile):
     add("=" * 68)
     add(f"  {p.metric_name.upper()} WARP DRIVE - MISSION PROFILE")
     add("=" * 68)
-    add(f"  bubble radius      R      = {p.radius:>12.1f} m")
-    add(f"  wall thickness     1/sig  = {p.thickness:>12.2f} m"
+    add(f"  bubble radius      R      = {_length(p.radius, 1)} m")
+    add(f"  wall thickness     1/sig  = {_length(p.thickness, 2)} m"
         f"   ({p.thickness / L_PLANCK:.2e} Planck lengths)")
     add(f"  apparent speed     v_s    = {p.speed / C_LIGHT:>12.1f} c")
+    if p.pocket_radius is not None:
+        add(f"  pocket, proper radius     = {p.pocket_radius:>12.1f} m")
     add("-" * 68)
     add(f"  target at {p.distance / LY:.4f} ly")
     add(f"  coordinate time                 t   = "
@@ -136,7 +164,11 @@ def format_profile(profile):
         f"{p.energy.negative_mass / M_JUP:>12.4e} Jupiter masses")
     add("-" * 68)
     add("  CAUSAL STRUCTURE")
-    if p.horizon is None:
+    if not p.horizon_resolved:
+        add("  superluminal bubble: the horizon lies inside a wall too thin")
+        add("  to locate in double precision, within a few wall thicknesses")
+        add("  of R. The crew still cannot signal the front wall.")
+    elif p.horizon is None:
         add("  subluminal bubble: no horizon, the crew can steer the wall.")
     else:
         add(f"  future horizon at x_s = {p.horizon:>10.3f} m ahead of the ship")

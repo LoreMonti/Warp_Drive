@@ -296,7 +296,9 @@ class WarpMetric(ABC):
         def photon_speed(offset):
             beta = float(self.shift(offset, 0.0, 0.0))
             conformal = float(self.conformal_factor(offset, 0.0, 0.0))
-            return beta + C_LIGHT / conformal - self.speed
+            # beta - v_s first: in an inflated pocket c/B can be ~1e-9 m/s,
+            # which would vanish in rounding if added to beta ~ v_s
+            return (beta - self.speed) + C_LIGHT / conformal
 
         half = WALL_HALF_WIDTH / self.sigma
         lo, hi = 0.0, self.radius + half
