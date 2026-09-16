@@ -7,8 +7,11 @@
 #
 # so that a concrete metric is fully specified by two radial profiles:
 #
-#     beta(r_s)  the shift vector, which drags the coordinates along
+#     beta(r_s)  the drag velocity, which carries the coordinates along
 #     B(r_s)     the spatial conformal factor, which inflates volume
+#
+# beta is the velocity of the Eulerian observers, not the ADM shift: the
+# standard ADM form has (dx^i + beta^i_ADM dt), so beta^x_ADM = -beta.
 #
 # Alcubierre (1994) has B = 1 and beta = v_s f(r_s).
 # Van Den Broeck (1999) keeps that shift and adds a non-trivial B.
@@ -68,7 +71,10 @@ class WarpMetric(ABC):
 
     @abstractmethod
     def shift(self, x, y, z):
-        """Shift vector component beta^x(r_s). [m s^-1]"""
+        """
+        Drag velocity beta(r_s) along the axis of motion, equal to minus
+        the ADM shift beta^x_ADM. [m s^-1]
+        """
 
     @abstractmethod
     def conformal_factor(self, x, y, z):

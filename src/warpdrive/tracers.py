@@ -2,9 +2,10 @@
 # Eulerian congruence: test particles carried by a passing bubble
 #
 # The Eulerian observers are the ones at rest with respect to the
-# spatial slices; their coordinate velocity is the shift vector itself,
+# spatial slices; their coordinate velocity is the drag velocity beta
+# returned by `WarpMetric.shift`, i.e. minus the ADM shift,
 #
-#     dx/dt = beta^x,   dy/dt = dz/dt = 0.
+#     dx/dt = beta = -beta^x_ADM,   dy/dt = dz/dt = 0.
 #
 # Integrating them shows two behaviours, both physical:
 #
