@@ -176,6 +176,15 @@ radial quadrature:
 
 $$E = -\frac{c^2 v_s^2}{12 G}\int_0^\infty \left(\frac{df}{dr}\right)^2 r^2\,dr$$
 
+The integral is taken over the distance from the wall, $s = r - R$, rather
+than over $r$. A wall of $10^2$ Planck lengths around a femtometre bubble has
+$R\sigma \sim 10^{18}$, beyond the range of double precision: every $r$ across
+it rounds to the same number, while $s$ stays representable. The budget is
+always reported as a negative and a positive part, $E_-$ and $E_+$, never as a
+single net number; for Alcubierre $E_+ = 0$, but for a metric with a conformal
+factor the two have different physical meaning and summing them would hide the
+exotic matter.
+
 **Causal structure** — for $v_s > c$ a photon emitted forward along the axis
 obeys $\dot{x}_s = c - v_s\left[1 - f\right]$, which vanishes where
 $f = 1 - c/v_s$. A horizon forms inside the bubble wall: the crew cannot signal
@@ -196,8 +205,8 @@ Proxima Centauri, 4.2465 ly
   crew proper time tau = 0.4246 yr        (dtau/dt = 1.000000)
   1g relativistic rocket, same trip: tau = 3.54 yr, t = 5.87 yr
 
-  exotic energy    E   = -3.37e+47 J
-  mass equivalent  M   = -3.75e+30 kg  =  -1.89 solar masses
+  negative energy  E-  = -3.37e+47 J       (positive part E+ = 0)
+  exotic mass      M-  = -3.75e+30 kg  =  -1.89 solar masses
   future horizon at 89.0 m ahead of the ship
 ```
 

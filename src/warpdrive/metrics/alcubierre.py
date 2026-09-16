@@ -18,8 +18,12 @@ import numpy as np
 
 # --- Local imports ---
 from ..constants import C_LIGHT, G
-from ..shapes import tanh_top_hat, tanh_top_hat_derivative
-from .base import WarpMetric
+from ..shapes import (
+    tanh_top_hat,
+    tanh_top_hat_derivative,
+    tanh_top_hat_derivative_from_wall,
+)
+from .base import WALL_HALF_WIDTH, EnergyBudget, WarpMetric
 
 
 @dataclass
@@ -123,7 +127,7 @@ class AlcubierreMetric(WarpMetric):
         return np.where(r_s2 > 0.0, eps, 0.0)
 
     # --- Closed form energy budget ---
-    def exotic_energy_analytic(self, n_points=200000):
+    def energy_budget_analytic(self, n_points=200000):
         """
         The angular part of the volume integral is analytic,
 
@@ -133,14 +137,22 @@ class AlcubierreMetric(WarpMetric):
 
             E = -(c^2 v_s^2 / 12 G) \\int_0^inf (df/dr)^2 r^2 dr.
 
-        Scaling: E ~ v_s^2 R^2 sigma.
+        The radial integral is taken over the offset s = r - R, from
+        max(-R, -30/sigma) to 30/sigma, with df/dr evaluated from the
+        offset directly. That keeps a Planck-thin wall around a
+        femtometre bubble representable, which no grid in r can do.
 
-        Returns (E [J], M_equivalent [kg]).
+        The density is non-positive everywhere, so the positive part is
+        exactly zero. Scaling: E ~ v_s^2 R^2 sigma.
+
+        Returns an EnergyBudget.
         """
 
-        r_max = self.radius + 25.0 / self.sigma
-        r = np.linspace(0.0, r_max, n_points)
-        integral = np.trapezoid(self.shape_derivative(r) ** 2 * r ** 2, r)
+        half = WALL_HALF_WIDTH / self.sigma
+        s = np.linspace(max(-self.radius, -half), half, n_points)
+        derivative = tanh_top_hat_derivative_from_wall(s, self.radius,
+                                                       self.sigma)
+        integral = np.trapezoid(derivative ** 2 * (self.radius + s) ** 2, s)
 
         energy = -(C_LIGHT ** 2 * self.speed ** 2 / (12.0 * G)) * integral
-        return energy, energy / C_LIGHT ** 2
+        return EnergyBudget(negative=energy, positive=0.0)

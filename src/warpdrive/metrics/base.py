@@ -26,12 +26,81 @@
 
 # --- Standard library imports ---
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 
 # --- Third-party imports ---
 import numpy as np
 
 # --- Local imports ---
 from ..constants import C_LIGHT
+
+
+#: Radial extent of a tanh wall, in units of 1/sigma. sech^2 has decayed
+#: to ~e^-60 there, far below anything that affects the budget.
+WALL_HALF_WIDTH = 30.0
+
+#: Narrowest region the generic quadrature accepts, relative to its outer
+#: radius. Below this the grid spacing approaches the rounding of r
+#: itself and the trapezoid rule returns noise rather than an error.
+MIN_RELATIVE_WIDTH = 1.0e-6
+
+
+@dataclass(frozen=True)
+class EnergyBudget:
+    """
+    Total energy measured by the Eulerian observers, split by sign.
+
+    The two parts are kept apart because they are different physical
+    statements: the negative part is the exotic matter the geometry
+    demands, the positive part is ordinary matter. Summing them into a
+    single number would report, for Van Den Broeck's bubble, a positive
+    total that hides several solar masses of negative energy.
+    """
+
+    #: Integral of the negative part of the density [J], <= 0.
+    negative: float
+
+    #: Integral of the positive part of the density [J], >= 0.
+    positive: float
+
+    @property
+    def net(self):
+        """negative + positive [J]."""
+
+        return self.negative + self.positive
+
+    @property
+    def negative_mass(self):
+        """Mass equivalent of the negative part, E_- / c^2 [kg]."""
+
+        return self.negative / C_LIGHT ** 2
+
+    @property
+    def positive_mass(self):
+        """Mass equivalent of the positive part, E_+ / c^2 [kg]."""
+
+        return self.positive / C_LIGHT ** 2
+
+    @property
+    def net_mass(self):
+        """Mass equivalent of the net energy [kg]."""
+
+        return self.net / C_LIGHT ** 2
+
+
+def merge_regions(regions):
+    """
+    Sort radial intervals and merge the ones that overlap or touch, so
+    that no part of space is integrated twice.
+    """
+
+    merged = []
+    for inner, outer in sorted(regions):
+        if merged and inner <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], outer))
+        else:
+            merged.append((inner, outer))
+    return merged
 
 
 class WarpMetric(ABC):
@@ -43,9 +112,9 @@ class WarpMetric(ABC):
     and the energy density, both of which follow from a metric-specific
     computation of the Einstein tensor.
 
-    Everything else - proper time, the total exotic energy budget, the
-    location of the horizon - is derived here from the interface, so it
-    is written once and stays correct for every metric.
+    Everything else - proper time, the energy budget, the location of
+    the horizon - is derived here from the interface, so it is written
+    once and stays correct for every metric.
     """
 
     #: Bubble speed [m s^-1]; a coordinate velocity, not a local one.
@@ -121,47 +190,77 @@ class WarpMetric(ABC):
             )
         return np.sqrt(-ds2) / C_LIGHT
 
-    def total_exotic_energy(self, r_max=None, n_radial=4000, n_polar=800):
+    def energy_regions(self):
         """
-        Total energy of the bubble,
+        Radial intervals (inner, outer) [m] outside which the energy
+        density vanishes.
 
-            E = \\int eps sqrt(gamma) d^3x,   sqrt(gamma) = B^3,
-
-        integrated on a spherical grid centred on the bubble. Axisymmetry
-        about the x axis makes the azimuthal integral a factor of 2 pi.
-
-        This generic quadrature works for any metric implementing the
-        interface. Metrics with a closed form should override
-        `exotic_energy_analytic` and are checked against this routine in
-        the test suite.
-
-        Returns (E [J], M_equivalent [kg]).
+        The default is the wall of the shift, R +- 30/sigma. A metric
+        with more structure, such as the transition region of B, adds its
+        own intervals; overlaps are merged before integrating.
         """
 
-        if r_max is None:
-            r_max = self.radius + 30.0 / self.sigma
+        half = WALL_HALF_WIDTH / self.sigma
+        return [(max(0.0, self.radius - half), self.radius + half)]
 
-        r = np.linspace(0.0, r_max, n_radial)
+    def energy_budget(self, n_radial=4000, n_polar=800):
+        """
+        Energy budget by direct quadrature of the density,
+
+            E_-+ = \\int min/max(eps, 0) sqrt(gamma) d^3x,
+            sqrt(gamma) = B^3,
+
+        on a spherical grid laid over each region of `energy_regions`
+        separately, so a thin wall gets its own n_radial points instead
+        of a share of a grid spanning the whole bubble. Axisymmetry about
+        the x axis makes the azimuthal integral a factor of 2 pi.
+
+        This works for any metric implementing the interface. Metrics
+        with a closed form override `energy_budget_analytic` and are
+        checked against this routine in the test suite.
+
+        Raises ValueError for a region too thin, relative to its radius,
+        to be resolved in double precision; such walls need a closed
+        form written in the distance from the wall.
+
+        Returns an EnergyBudget.
+        """
+
         polar = np.linspace(0.0, np.pi, n_polar)
-        R_GRID, THETA = np.meshgrid(r, polar, indexing="ij")
+        negative = positive = 0.0
 
-        x = R_GRID * np.cos(THETA)
-        rho = R_GRID * np.sin(THETA)
+        for inner, outer in merge_regions(self.energy_regions()):
+            if outer - inner < MIN_RELATIVE_WIDTH * outer:
+                raise ValueError(
+                    f"region [{inner:.3e}, {outer:.3e}] m is too thin to "
+                    "resolve in r; use a closed form in the wall offset"
+                )
 
-        eps = self.energy_density(x, rho, 0.0)
-        conformal = self.conformal_factor(x, rho, 0.0)
-        integrand = eps * conformal ** 3 * R_GRID ** 2 * np.sin(THETA)
+            r = np.linspace(inner, outer, n_radial)
+            R_GRID, THETA = np.meshgrid(r, polar, indexing="ij")
 
-        energy = 2.0 * np.pi * np.trapezoid(
-            np.trapezoid(integrand, polar, axis=1), r
-        )
-        return energy, energy / C_LIGHT ** 2
+            x = R_GRID * np.cos(THETA)
+            rho = R_GRID * np.sin(THETA)
 
-    def exotic_energy_analytic(self):
+            eps = self.energy_density(x, rho, 0.0)
+            conformal = self.conformal_factor(x, rho, 0.0)
+            integrand = eps * conformal ** 3 * R_GRID ** 2 * np.sin(THETA)
+
+            def integrate(values):
+                return 2.0 * np.pi * np.trapezoid(
+                    np.trapezoid(values, polar, axis=1), r
+                )
+
+            negative += integrate(np.minimum(integrand, 0.0))
+            positive += integrate(np.maximum(integrand, 0.0))
+
+        return EnergyBudget(negative=negative, positive=positive)
+
+    def energy_budget_analytic(self):
         """
         Closed-form energy budget, when the metric admits one.
 
-        Returns (E [J], M_equivalent [kg]) or None.
+        Returns an EnergyBudget, or None.
         """
 
         return None

@@ -12,7 +12,7 @@ from .diagnostics import (
     profile_mission,
     relativistic_rocket,
 )
-from .metrics import AlcubierreMetric, WarpMetric
+from .metrics import AlcubierreMetric, EnergyBudget, WarpMetric
 from .shapes import (
     broeck_volume_profile,
     broeck_volume_profile_derivative,
@@ -29,6 +29,7 @@ __version__ = "0.1.0"
 __all__ = [
     "AlcubierreMetric",
     "WarpMetric",
+    "EnergyBudget",
     "MissionProfile",
     "profile_mission",
     "format_profile",

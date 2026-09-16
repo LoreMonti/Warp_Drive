@@ -37,7 +37,7 @@ the test suite; unchecked ones are planned.
 - [ ] `BroeckMetric` overriding `conformal_factor`, written from the derivation
       rather than transcribed from the 1999 paper, with the transition region of
       $B$ kept inside the flat interior of $f$
-- [ ] Energy budget split into its negative and positive parts, on a radial
+- [x] Energy budget split into its negative and positive parts, on a radial
       grid that resolves each wall
 - [ ] Closed-form check of the net budget of the $B$ region (see below)
 - [ ] Cross-check against the published numbers, as an independent third
@@ -70,12 +70,13 @@ interface was designed correctly, before anything larger is built on top of it.
 
 Implementation notes:
 
-- `WarpMetric.total_exotic_energy` already carries the $\sqrt{\gamma} = B^3$
-  factor, but it returns the *net* integral on a uniform radial grid. Both
-  have to change: the net number mixes the negative and positive parts, and a
-  uniform grid cannot resolve walls whose thickness is many orders of magnitude
-  below the bubble radius. The test comparing it against the Alcubierre closed
-  form guards the shared path while this is reworked;
+- the energy budget is an `EnergyBudget` with separate negative and positive
+  parts. `WarpMetric.energy_budget` integrates each radial region declared by
+  `energy_regions` on its own grid and refuses regions too thin for double
+  precision; `AlcubierreMetric.energy_budget_analytic` integrates over the
+  wall offset $s = r - R$, which reaches Planck-thin walls and matches the
+  thin-wall limit. `BroeckMetric` only has to add the transition region of $B$
+  to `energy_regions`;
 - the energy density is no longer sign-definite: the transition region of $B$
   carries $\varepsilon > 0$, so the $\varepsilon \leq 0$ invariant of the
   Alcubierre tests must not be reused for `BroeckMetric`;

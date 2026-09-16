@@ -23,6 +23,7 @@ from .constants import (
     M_SUN,
     YEAR,
 )
+from .metrics.base import EnergyBudget
 from .shapes import wall_thickness
 
 
@@ -43,8 +44,7 @@ class MissionProfile:
     rocket_proper_time: float
     rocket_coordinate_time: float
 
-    energy: float
-    mass_equivalent: float
+    energy: EnergyBudget
 
     horizon: float | None
 
@@ -77,10 +77,9 @@ def profile_mission(metric, distance=D_PROXIMA, analytic_energy=True):
     coordinate_time = distance / metric.speed
     rate = metric.proper_time_rate()
 
-    energy_pair = metric.exotic_energy_analytic() if analytic_energy else None
-    if energy_pair is None:
-        energy_pair = metric.total_exotic_energy()
-    energy, mass = energy_pair
+    energy = metric.energy_budget_analytic() if analytic_energy else None
+    if energy is None:
+        energy = metric.energy_budget()
 
     tau_rocket, t_rocket = relativistic_rocket(distance)
 
@@ -96,7 +95,6 @@ def profile_mission(metric, distance=D_PROXIMA, analytic_energy=True):
         rocket_proper_time=tau_rocket,
         rocket_coordinate_time=t_rocket,
         energy=energy,
-        mass_equivalent=mass,
         horizon=metric.horizon_offset(),
     )
 
@@ -126,12 +124,14 @@ def format_profile(profile):
         f"t = {p.rocket_coordinate_time / YEAR:.3f} yr")
     add("-" * 68)
     add("  ENERGY BUDGET")
-    add(f"  total exotic energy    E = {p.energy:>12.4e} J")
-    add(f"  mass equivalent        M = {p.mass_equivalent:>12.4e} kg")
-    add(f"                           = {p.mass_equivalent / M_SUN:>12.4e} "
-        f"solar masses")
-    add(f"                           = {p.mass_equivalent / M_JUP:>12.4e} "
-        f"Jupiter masses")
+    add(f"  negative (exotic)      E-  = {p.energy.negative:>12.4e} J")
+    add(f"  positive               E+  = {p.energy.positive:>12.4e} J")
+    add(f"  net                    E   = {p.energy.net:>12.4e} J")
+    add(f"  exotic mass            M-  = {p.energy.negative_mass:>12.4e} kg")
+    add(f"                             = "
+        f"{p.energy.negative_mass / M_SUN:>12.4e} solar masses")
+    add(f"                             = "
+        f"{p.energy.negative_mass / M_JUP:>12.4e} Jupiter masses")
     add("-" * 68)
     add("  CAUSAL STRUCTURE")
     if p.horizon is None:
@@ -148,7 +148,8 @@ def format_profile(profile):
 
 def energy_scaling_table(metric_factory, speeds, radii):
     """
-    Tabulate the exotic mass over a grid of speeds and bubble radii.
+    Tabulate the exotic mass, the mass equivalent of the negative part
+    of the energy budget, over a grid of speeds and bubble radii.
 
     `metric_factory(speed, radius)` returns a configured metric, so the
     same table can be produced for any member of the family.
@@ -160,10 +161,10 @@ def energy_scaling_table(metric_factory, speeds, radii):
     for i, speed in enumerate(speeds):
         for j, radius in enumerate(radii):
             metric = metric_factory(speed, radius)
-            pair = metric.exotic_energy_analytic()
-            if pair is None:
-                pair = metric.total_exotic_energy()
-            table[i, j] = pair[1]
+            budget = metric.energy_budget_analytic()
+            if budget is None:
+                budget = metric.energy_budget()
+            table[i, j] = budget.negative_mass
 
     lines = []
     add = lines.append
