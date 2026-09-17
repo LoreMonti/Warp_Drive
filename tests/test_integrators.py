@@ -9,7 +9,13 @@ import pytest
 
 from warpdrive import AlcubierreMetric, integrate_tracers, make_tracer_grid
 from warpdrive.constants import C_LIGHT
-from warpdrive.integrators import integrate
+from warpdrive.integrators import (
+    OUT_OF_STEPS,
+    REACHED_END,
+    STOPPED,
+    integrate,
+    integrate_adaptive,
+)
 
 
 def test_rk4_is_fourth_order():
@@ -36,6 +42,69 @@ def test_integrate_handles_an_ensemble():
     history = integrate(rhs, np.zeros(5), np.linspace(0.0, 1.0, 11))
     assert history.shape == (11, 5)
     assert np.allclose(history[-1], 2.0)
+
+
+def test_adaptive_integrator_is_accurate_per_member():
+    """
+    Harmonic oscillators of different frequencies, integrated together:
+    each member picks its own steps and must land on cos(omega t).
+    """
+
+    omega = np.array([0.5, 1.0, 7.0, 40.0])
+
+    def rhs(t, y, members):
+        return np.array([y[1], -omega[members] ** 2 * y[0]])
+
+    t, state, status = integrate_adaptive(
+        rhs, np.array([np.ones(4), np.zeros(4)]), 10.0, rtol=1e-11,
+        atol=1e-13, max_steps=200000)
+
+    assert np.all(status == REACHED_END)
+    assert np.allclose(t, 10.0)
+    assert np.allclose(state[0], np.cos(10.0 * omega), atol=1e-7)
+
+
+def test_adaptive_integrator_runs_backwards():
+    """Members finish at different steps and keep their own rate."""
+
+    rates = np.array([0.3, 2.0])
+
+    def rhs(t, y, members):
+        return -rates[members] * y
+
+    t, state, status = integrate_adaptive(rhs, np.array([[1.0, 1.0]]), -2.0)
+
+    assert np.all(status == REACHED_END)
+    assert np.allclose(t, -2.0)
+    assert np.allclose(state[0], np.exp(2.0 * rates), rtol=1e-7)
+
+
+def test_adaptive_integrator_freezes_stopped_members():
+    """y' = v with different speeds, each member stopping once y > 5."""
+
+    speed = np.array([1.0, 2.0, 0.1])
+
+    def rhs(t, y, members):
+        return np.array([speed[members]])
+
+    t, state, status = integrate_adaptive(
+        rhs, np.zeros((1, 3)), 10.0, max_step=0.05,
+        stop=lambda t, y, members: y[0] > 5.0)
+
+    assert list(status) == [STOPPED, STOPPED, REACHED_END]
+    assert np.all(state[0, :2] > 5.0)
+    assert np.all(state[0, :2] < 5.0 + 0.05 * speed[:2])
+    assert np.allclose(t[:2], state[0, :2] / speed[:2])
+    assert state[0, 2] == pytest.approx(1.0)
+
+
+def test_adaptive_integrator_reports_exhausted_steps():
+    t, state, status = integrate_adaptive(
+        lambda t, y, members: np.ones_like(y), np.zeros((1, 2)), 1.0,
+        max_step=0.01, max_steps=10)
+
+    assert np.all(status == OUT_OF_STEPS)
+    assert np.all(t < 1.0)
 
 
 @pytest.fixture
