@@ -146,52 +146,64 @@ one where the derivation carries the whole weight, and it exercises terms of
 
 ## 2. Null-geodesic ray tracing — the view from the bridge
 
-- [ ] Hamiltonian ray integrator for the ADM form
-- [ ] Adaptive RK45 in `integrators.py`
-- [ ] Backwards integration from the observer, one ray per pixel
-- [ ] Blueshift map at the front wall
-- [ ] Horizon shadow as a correctness check
-- [ ] Rendered star field at several $v_s$, for both metrics
+- [x] Hamiltonian ray integrator in the rest frame of the bubble
+      (`geodesics.py`)
+- [x] Adaptive Dormand–Prince RK45 in `integrators.py`, one step size per ray
+- [x] Backwards integration from the ship; one fan of rays in a meridional
+      plane instead of one ray per pixel
+- [x] Frequency ratio along every line of sight, against the closed form
+- [x] Rear horizon as a correctness check, with its surface gravity
+- [x] Rendered star field at several $v_s$, for both metrics
+      (`viz/sky.py`, `scripts/run_sky.py`)
+- [ ] Observer away from the centre of the pocket, one ray per pixel in 3D
+- [ ] Brightness of the sources, not only their colour: specific intensity
+      scales as $I_\nu/\nu^3$ and the solid angle is compressed near the
+      visible limit
 
-Integrate null geodesics backwards from the ship to reconstruct what the crew
-would actually see through a window.
+The plan written before the implementation had two things wrong, recorded here
+because the tests now pin both.
 
-The metric is not static, so the geodesics have to be integrated in the full 4D
-spacetime rather than reduced to an effective potential.
-
-A sign convention has to be fixed first. In this package $\beta = v_s f(r_s)$
-is the *drag velocity*, entering the line element as $`(dx - \beta\,dt)`$. The
-standard ADM shift enters as $`(dx^i + \beta^i_{\mathrm{ADM}}\,dt)`$, so
-$\beta^x_{\mathrm{ADM}} = -\beta$. With lapse $\alpha = c$ and spatial metric
-$\gamma_{ij} = B^2 \delta_{ij}$, the general photon Hamiltonian
-$`H = \alpha\sqrt{\gamma^{ij} p_i p_j} - \beta^i_{\mathrm{ADM}}\, p_i`$ becomes
+**The metric is static.** In the frame of the bubble, $\xi = x - v_s t$ with
+constant $v_s$, nothing depends on time:
 
 ```math
-H = \frac{c}{B}\sqrt{\delta^{ij} p_i p_j} + \beta\, p_x
+ds^2 = -c^2 dt^2 + B^2\left[\left(d\xi - \tilde\beta\,dt\right)^2 + dy^2 + dz^2\right], \qquad \tilde\beta = \beta - v_s = -v_s\,(1-f)
 ```
 
-so the ray equations are $\dot{x}^i = \partial H / \partial p_i$ and
-$\dot{p}_i = -\partial H / \partial x^i$, with the shift and $B$ supplying all
-the coupling. A photon sent forward along the axis gets
-$\dot{x} = \beta + c/B$, the same condition `horizon_offset` solves; at the
-centre of a $v_s = 10c$ bubble that is $11c$, i.e. $c$ relative to the ship, as
-it must be in a flat region. Writing the shift term with the opposite sign
-would give $-9c$ there and move the horizon shadow. Practical notes:
+so the photon Hamiltonian is conserved,
 
-- integrate **backwards** in time from the observer, one ray per pixel, and map
-  the escaping direction onto a background star field or an equirectangular sky
-  texture;
-- `integrators.py` already vectorises RK4 over an ensemble, so a batch of rays
-  costs about the same as one; the wall, however, needs adaptive stepping —
-  $f'$ is sharply peaked and a fixed step will walk straight through it, so an
-  embedded RK45 belongs in the same module;
-- carry the photon frequency along each ray to get the **blueshift map** at the
-  front wall, which is the observable that makes the bulldozer problem
-  quantitative rather than anecdotal;
-- for $v_s > c$ the horizon computed by `horizon_offset` shows up as a region no
-  backwards ray can reach — a black disc ahead of the ship. That is a useful
-  check on the integrator: the disc must appear exactly where the bisection puts
-  it.
+```math
+H = \frac{c}{B}\,|p| + \tilde\beta\,p_\xi
+```
 
-By this point there are two metrics to render, so the same camera can show what
-changes when the bubble is Van Den Broeck's rather than Alcubierre's.
+The sign convention is the one fixed above: $\beta$ is the drag velocity and
+$\beta^x_{\mathrm{ADM}} = -\beta$. Conservation of $H$ gives the frequency
+ratio between the ship and a distant source in closed form,
+$`E_\mathrm{ship}/E_\mathrm{far} = 1 - (v_s/c)\,n_\xi`$, and the integrator is
+tested against it for every ray.
+
+**The dark region is behind the ship, not ahead.** The horizon found by
+`horizon_offset` stops signals sent forward from the ship; light arriving from
+ahead reaches it freely. Light from behind advances on the ship at
+$c/B - v_s(1-f)$, which is $c - v_s < 0$ far away: a superluminal bubble
+outruns it. Only sources with $n_\xi < c/v_s$ are visible, a ray traced
+towards the rear stalls at $\xi = -h$, and its momentum grows as
+$e^{\kappa c t}$ with $\kappa = (v_s/c)|f'(h)|$.
+
+Implementation notes:
+
+- from the centre the sky is axisymmetric, so rays in one plane, interpolated
+  over the look angle, place every star; a per-pixel tracer is only needed off
+  the centre;
+- a step may not cross more than half a wall thickness, because an error
+  estimate cannot see a wall that falls between its samples;
+- rays whose frequency ratio falls below $10^{-12}$ are stopped as lost at the
+  horizon; the Hamiltonian drift is measured relative to $|p|/B$, since near
+  the horizon $|p|$ reaches $10^{12}$ and rounding dominates;
+- an early draft reversed time both in the right-hand side and in the
+  integration limit, tracing rays forwards; the blueshift still matched, since
+  $H$ is conserved either way, and only the side on which the rear ray stalled
+  exposed it;
+- for a ship at the centre the two metrics show the same sky: $B$ is
+  spherically symmetric and absent from the blueshift. Seeing the pocket needs
+  the off-centre observer above.

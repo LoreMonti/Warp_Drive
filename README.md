@@ -47,13 +47,16 @@ python scripts/run_alcubierre.py --speed 2 --radius 50 --sigma 0.5
 python scripts/run_alcubierre.py --no-animation
 python scripts/run_broeck.py
 python scripts/run_broeck.py --speed 1 --pocket 50
+python scripts/run_sky.py
+python scripts/run_sky.py --speeds 0.9 1.5 5
 ```
 
 `run_alcubierre.py` writes four figures, one animation and a mission report to
 `output/`, which is not tracked. `run_broeck.py` writes the same figures for Van
 Den Broeck's bubble plus the comparison and neck-scaling figures to
 `output/broeck/`, with mission reports for a macroscopic bubble and for the
-configuration of the 1999 paper. As a library:
+configuration of the 1999 paper. `run_sky.py` traces null rays from the centre of
+the bubble and writes the sky the crew sees to `output/sky/`. As a library:
 
 ```python
 from warpdrive import AlcubierreMetric, profile_mission, format_profile
@@ -85,11 +88,11 @@ Warp_Drive/
 ├── src/warpdrive/
 │   ├── constants.py           # physical constants and unit conversions
 │   ├── shapes.py              # radial profiles f(r), B(r) and derivatives
-│   ├── integrators.py         # RK4 vectorised over an ensemble
+│   ├── integrators.py         # RK4 and adaptive RK45 over an ensemble
 │   ├── tracers.py             # Eulerian congruence dragged by the bubble
 │   ├── diagnostics.py         # travel times, energy budget, neck scan
 │   ├── symbolic.py            # Einstein tensor: source of truth
-│   ├── geodesics.py           # null-geodesic ray tracing        [roadmap 2]
+│   ├── geodesics.py           # null rays: the sky from the bubble
 │   ├── metrics/
 │   │   ├── base.py            # WarpMetric: the 3+1 interface
 │   │   ├── alcubierre.py      # the 1994 metric
@@ -98,10 +101,12 @@ Warp_Drive/
 │       ├── style.py           # shared palette
 │       ├── figures.py         # static figures
 │       ├── comparison.py      # Alcubierre against Van Den Broeck
+│       ├── sky.py             # the view from the bridge
 │       └── animation.py       # flyby animation
 ├── scripts/
 │   ├── run_alcubierre.py      # command line driver
-│   └── run_broeck.py          # Van Den Broeck study
+│   ├── run_broeck.py          # Van Den Broeck study
+│   └── run_sky.py             # null rays and the sky
 ├── tests/                     # pytest suite
 └── docs/assets/               # images used by this README
 ```
@@ -291,6 +296,62 @@ that the budget has a floor.
 
 ![Exotic mass against neck radius](docs/assets/06_neck_scaling.png)
 
+## The view from the bridge
+
+For constant $v_s$ the metric is static in the rest frame of the bubble,
+$\xi = x - v_s t$:
+
+```math
+ds^2 = -c^2 dt^2 + B^2\left[\left(d\xi - \tilde\beta\,dt\right)^2 + dy^2 + dz^2\right], \qquad \tilde\beta = -v_s\,(1 - f)
+```
+
+so a photon has a conserved Hamiltonian, and `geodesics.py` integrates
+Hamilton's equations backwards from the ship:
+
+```math
+H = \frac{c}{B}\,|p| + \tilde\beta\,p_\xi, \qquad \dot x^i = \frac{\partial H}{\partial p_i}, \qquad \dot p_i = -\frac{\partial H}{\partial x^i}
+```
+
+An Eulerian observer measures a photon energy proportional to $|p|/B$. At the
+ship $\tilde\beta = 0$, far away $B = 1$ and $\tilde\beta = -v_s$, so the
+conservation of $H$ fixes the blueshift of every source without integrating
+anything:
+
+```math
+\frac{E_\mathrm{ship}}{E_\mathrm{far}} = 1 - \frac{v_s}{c}\,n_\xi
+```
+
+with $n$ the direction in which the light travels far from the bubble. Three
+consequences, each checked against the ray integrator:
+
+- a star straight ahead appears $1 + v_s/c$ times bluer, eleven times at $10c$;
+- no light with $n_\xi > c/v_s$ reaches the ship. Behind a superluminal bubble
+  the sky is **dark**, because the bubble outruns the light chasing it: only
+  sources within $\arccos(-c/v_s)$ of the direction of travel can be seen, and
+  the hidden fraction of the sky is $(1 - c/v_s)/2$, 45 % at $10c$;
+- a ray traced towards the rear stalls at the horizon, exactly where
+  `horizon_offset` puts it, and its momentum grows as $e^{\kappa c t}$ with
+  $`\kappa = (v_s/c)\,|f'(h)|`$, the analogue of a surface gravity.
+
+From the centre the sky is symmetric about the direction of travel, so a fan of
+rays in one plane describes all of it. The views below are fisheye images of a
+procedural star field: straight ahead at the centre of each disc, straight
+behind at the rim, stars coloured by $E_\mathrm{ship}/E_\mathrm{far}$.
+
+![The sky seen from the centre of the bubble](docs/assets/07_sky.png)
+
+Apart from the visible limit, the stars barely move: the apparent angle stays
+close to the true one until the last few degrees, where the sky is stretched
+over the rest of the view and redshifted to nothing.
+
+![Apparent angle and blueshift against the true angle](docs/assets/08_sky_mapping.png)
+
+For a ship at the centre, Van Den Broeck's pocket changes nothing: $B$ is
+spherically symmetric, so rays leaving the centre cross it radially and only
+slow down, and the blueshift above does not contain $B$. With the same shift
+wall the two skies agree to $10^{-12}$ rad. The pocket would only show for an
+observer away from the centre.
+
 ## Sample output
 
 For $R = 100$ m, $1/\sigma = 10$ m, $v_s = 10c$:
@@ -359,8 +420,9 @@ longer faster than light.
 
 ## Roadmap
 
-Null-geodesic ray tracing comes next, for both metrics; the plan and its status
-live in **[ROADMAP.md](ROADMAP.md)**.
+The next steps, an observer away from the centre of the pocket and the
+overlapping Van Den Broeck configuration, live in
+**[ROADMAP.md](ROADMAP.md)**.
 
 ## References
 
