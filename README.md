@@ -31,40 +31,37 @@ expands it behind. Special relativity is never violated, because $v_s$ is a
 ```bash
 git clone https://github.com/LoreMonti/Warp_Drive.git
 cd Warp_Drive
+python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 ```
 
-Dependencies are `numpy`, `matplotlib` and `sympy`; the `dev` extra adds
-`pytest`. Nothing at runtime imports sympy — it carries the derivation the rest
-of the package is checked against, so it is a hard dependency rather than an
-optional extra.
+That one install command reads `pyproject.toml` and pulls in everything the
+package needs: `numpy`, `matplotlib` and `sympy`, plus `pytest` from the `dev`
+extra. Nothing at runtime imports sympy — it carries the derivation the rest of
+the package is checked against, so it is a hard dependency rather than an
+optional extra. Python 3.10 or newer; the results below were produced with
+Python 3.10, numpy 2.2.6, matplotlib 3.10.9 and sympy 1.14.0.
 
 ## Usage
 
+Three drivers reproduce the studies in this README. Each builds its bubbles,
+writes its figures and prints a report, needs no arguments for the default run,
+and lists its options with `--help`.
+
+| script | what it does |
+| --- | --- |
+| `run_alcubierre.py` | the 1994 bubble: shape function, expansion scalar, exotic-matter shell, flyby animation and mission profile |
+| `run_broeck.py` | the two-scale bubble: the same figures, the comparison with Alcubierre, the neck scan and the configuration of the 1999 paper |
+| `run_sky.py` | null rays from the centre: the sky the crew sees at several speeds |
+| `make_readme_images.py` | rebuilds the images shown in this README |
+
 ```bash
-python scripts/run_alcubierre.py
-python scripts/run_alcubierre.py --speed 2 --radius 50 --sigma 0.5
-python scripts/run_alcubierre.py --no-animation
-python scripts/run_broeck.py
-python scripts/run_broeck.py --speed 1 --pocket 50
 python scripts/run_sky.py
-python scripts/run_sky.py --speeds 0.9 1.5 5
 ```
 
-The drivers write their figures to `images/local/<study>/` and their text
-reports to `reports/`, neither of which is tracked. `run_alcubierre.py` writes
-four figures, one animation and a mission report. `run_broeck.py` writes the
-same figures for Van Den Broeck's bubble plus the comparison and neck-scaling
-figures, with mission reports for a macroscopic bubble and for the configuration
-of the 1999 paper. `run_sky.py` traces null rays from the centre of the bubble
-and writes the sky the crew sees.
-
-The only tracked images are the ones in this README. They live in
-`images/readme/` and are rebuilt, with their parameters fixed in code, by
-
-```bash
-python scripts/make_readme_images.py
-```
+Figures go to `images/local/`, reports to `reports/`; neither is tracked, and
+both are rebuilt by rerunning a script. The only tracked images are the ones in
+this README, in `images/readme/`, with their parameters fixed in code.
 
 As a library:
 
