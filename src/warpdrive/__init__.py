@@ -14,6 +14,7 @@ from .diagnostics import (
     profile_mission,
     relativistic_rocket,
 )
+from .geodesics import RayBundle, horizon_surface_gravity, trace_rays
 from .metrics import AlcubierreMetric, BroeckMetric, EnergyBudget, WarpMetric
 from .shapes import (
     broeck_volume_profile,
@@ -41,6 +42,9 @@ __all__ = [
     "neck_scaling",
     "relativistic_rocket",
     "integrate_tracers",
+    "RayBundle",
+    "trace_rays",
+    "horizon_surface_gravity",
     "make_tracer_grid",
     "tanh_top_hat",
     "tanh_top_hat_derivative",
