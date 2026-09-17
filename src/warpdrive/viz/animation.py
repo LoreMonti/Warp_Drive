@@ -26,7 +26,7 @@ from .style import (
 
 
 def animate_flyby(metric, path, n_frames=150, fps=22, tail=12,
-                  rows=(0.0, 0.5, 1.0, 1.5, 2.0)):
+                  rows=(0.0, 0.5, 1.0, 1.5, 2.0), dpi=100):
     """
     Render the bubble crossing a lattice of initially static particles.
 
@@ -34,6 +34,9 @@ def animate_flyby(metric, path, n_frames=150, fps=22, tail=12,
     are dragged and released, while particles near the axis are captured
     and carried along, because f = 1 inside the bubble forces them to
     dx/dt = v_s.
+
+    `dpi` sets the resolution of the frames, which dominates the size of
+    the file.
 
     Returns the path of the written GIF.
     """
@@ -112,6 +115,6 @@ def animate_flyby(metric, path, n_frames=150, fps=22, tail=12,
 
     anim = FuncAnimation(fig, update, frames=n_frames, blit=False,
                          interval=1000 // fps)
-    anim.save(path, writer=PillowWriter(fps=fps),
+    anim.save(path, writer=PillowWriter(fps=fps), dpi=dpi,
               savefig_kwargs={"facecolor": BG})
     return path

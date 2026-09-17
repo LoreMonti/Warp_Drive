@@ -35,9 +35,9 @@ from warpdrive import (                                       # noqa: E402
 from warpdrive.viz import animate_flyby, plot_all             # noqa: E402
 
 
-DEFAULT_OUTDIR = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), os.pardir, "output"
-)
+ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir)
+DEFAULT_FIGURES = os.path.join(ROOT, "images", "local", "alcubierre")
+DEFAULT_REPORTS = os.path.join(ROOT, "reports")
 
 
 def parse_args(argv=None):
@@ -54,8 +54,12 @@ def parse_args(argv=None):
     parser.add_argument("--distance", type=float, default=4.2465,
                         help="target distance in light years "
                              "(default: 4.2465, Proxima Centauri)")
-    parser.add_argument("--outdir", default=DEFAULT_OUTDIR,
-                        help="output directory (default: ./output)")
+    parser.add_argument("--figures-dir", default=DEFAULT_FIGURES,
+                        help="figure directory, not tracked "
+                             "(default: ./images/local/alcubierre)")
+    parser.add_argument("--reports-dir", default=DEFAULT_REPORTS,
+                        help="report directory, not tracked "
+                             "(default: ./reports)")
     parser.add_argument("--no-figures", action="store_true",
                         help="skip the static figures")
     parser.add_argument("--no-animation", action="store_true",
@@ -73,18 +77,19 @@ def main(argv=None):
     metric = AlcubierreMetric(speed=args.speed * C_LIGHT,
                               radius=args.radius,
                               sigma=args.sigma)
-    os.makedirs(args.outdir, exist_ok=True)
+    os.makedirs(args.figures_dir, exist_ok=True)
+    os.makedirs(args.reports_dir, exist_ok=True)
     print(f"configuration: {metric!r}\n")
 
     if not args.no_figures:
         print("static figures ...")
-        for path in plot_all(metric, args.outdir):
+        for path in plot_all(metric, args.figures_dir):
             print("   ", os.path.relpath(path))
 
     if not args.no_animation:
         print("animation (this is the slow part) ...")
         path = animate_flyby(metric,
-                             os.path.join(args.outdir, "05_warp_flyby.gif"),
+                             os.path.join(args.figures_dir, "05_flyby.gif"),
                              n_frames=args.frames)
         print("   ", os.path.relpath(path))
 
@@ -102,10 +107,12 @@ def main(argv=None):
     text = report + "\n\n" + scaling + "\n"
     print("\n" + text)
 
-    with open(os.path.join(args.outdir, "mission_report.txt"), "w") as handle:
+    report_path = os.path.join(args.reports_dir, "alcubierre_mission.txt")
+    with open(report_path, "w") as handle:
         handle.write(text)
 
-    print(f"output written to {os.path.relpath(args.outdir)}")
+    print(f"figures written to {os.path.relpath(args.figures_dir)}")
+    print(f"report written to {os.path.relpath(report_path)}")
     return 0
 
 

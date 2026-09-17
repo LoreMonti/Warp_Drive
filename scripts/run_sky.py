@@ -39,9 +39,9 @@ from warpdrive.geodesics import sky_map                       # noqa: E402
 from warpdrive.viz import plot_sky, plot_sky_mapping          # noqa: E402
 
 
-DEFAULT_OUTDIR = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), os.pardir, "output", "sky"
-)
+ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir)
+DEFAULT_FIGURES = os.path.join(ROOT, "images", "local", "sky")
+DEFAULT_REPORTS = os.path.join(ROOT, "reports")
 
 
 def parse_args(argv=None):
@@ -57,8 +57,12 @@ def parse_args(argv=None):
                         help="bubble radius in metres (default: 100)")
     parser.add_argument("--sigma", type=float, default=1.0,
                         help="inverse wall thickness in 1/m (default: 1)")
-    parser.add_argument("--outdir", default=DEFAULT_OUTDIR,
-                        help="output directory (default: ./output/sky)")
+    parser.add_argument("--figures-dir", default=DEFAULT_FIGURES,
+                        help="figure directory, not tracked "
+                             "(default: ./images/local/sky)")
+    parser.add_argument("--reports-dir", default=DEFAULT_REPORTS,
+                        help="report directory, not tracked "
+                             "(default: ./reports)")
     parser.add_argument("--no-figures", action="store_true",
                         help="skip the figures")
     return parser.parse_args(argv)
@@ -96,7 +100,8 @@ def format_sky_table(bubbles):
 
 def main(argv=None):
     args = parse_args(argv)
-    os.makedirs(args.outdir, exist_ok=True)
+    os.makedirs(args.figures_dir, exist_ok=True)
+    os.makedirs(args.reports_dir, exist_ok=True)
 
     bubbles = [AlcubierreMetric(speed=s * C_LIGHT, radius=args.radius,
                                 sigma=args.sigma) for s in args.speeds]
@@ -112,9 +117,12 @@ def main(argv=None):
 
     if not args.no_figures:
         print("figures ...")
-        for path in (plot_sky(bubbles, os.path.join(args.outdir, "sky.png")),
-                     plot_sky_mapping(bubbles, os.path.join(
-                         args.outdir, "sky_mapping.png"))):
+        for path in (
+            plot_sky(bubbles, os.path.join(args.figures_dir,
+                                           "01_fisheye.png")),
+            plot_sky_mapping(bubbles, os.path.join(args.figures_dir,
+                                                   "02_mapping.png")),
+        ):
             print("   ", os.path.relpath(path))
 
     text = format_sky_table(bubbles) + (
@@ -123,10 +131,12 @@ def main(argv=None):
         f"{difference:.1e} rad\n"
     )
     print("\n" + text)
-    with open(os.path.join(args.outdir, "sky_report.txt"), "w") as handle:
+    report_path = os.path.join(args.reports_dir, "sky.txt")
+    with open(report_path, "w") as handle:
         handle.write(text)
 
-    print(f"output written to {os.path.relpath(args.outdir)}")
+    print(f"figures written to {os.path.relpath(args.figures_dir)}")
+    print(f"report written to {os.path.relpath(report_path)}")
     return 0
 
 

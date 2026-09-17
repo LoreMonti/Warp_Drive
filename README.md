@@ -24,7 +24,7 @@ sits at rest in a flat patch while the wall contracts space ahead of it and
 expands it behind. Special relativity is never violated, because $v_s$ is a
 *coordinate* velocity, not a local one.
 
-![Alcubierre bubble sweeping past a field of test particles](docs/assets/warp_flyby.gif)
+![Alcubierre bubble sweeping past a field of test particles](images/readme/alcubierre_flyby.gif)
 
 ## Install
 
@@ -51,12 +51,22 @@ python scripts/run_sky.py
 python scripts/run_sky.py --speeds 0.9 1.5 5
 ```
 
-`run_alcubierre.py` writes four figures, one animation and a mission report to
-`output/`, which is not tracked. `run_broeck.py` writes the same figures for Van
-Den Broeck's bubble plus the comparison and neck-scaling figures to
-`output/broeck/`, with mission reports for a macroscopic bubble and for the
-configuration of the 1999 paper. `run_sky.py` traces null rays from the centre of
-the bubble and writes the sky the crew sees to `output/sky/`. As a library:
+The drivers write their figures to `images/local/<study>/` and their text
+reports to `reports/`, neither of which is tracked. `run_alcubierre.py` writes
+four figures, one animation and a mission report. `run_broeck.py` writes the
+same figures for Van Den Broeck's bubble plus the comparison and neck-scaling
+figures, with mission reports for a macroscopic bubble and for the configuration
+of the 1999 paper. `run_sky.py` traces null rays from the centre of the bubble
+and writes the sky the crew sees.
+
+The only tracked images are the ones in this README. They live in
+`images/readme/` and are rebuilt, with their parameters fixed in code, by
+
+```bash
+python scripts/make_readme_images.py
+```
+
+As a library:
 
 ```python
 from warpdrive import AlcubierreMetric, profile_mission, format_profile
@@ -106,13 +116,17 @@ Warp_Drive/
 ├── scripts/
 │   ├── run_alcubierre.py      # command line driver
 │   ├── run_broeck.py          # Van Den Broeck study
-│   └── run_sky.py             # null rays and the sky
+│   ├── run_sky.py             # null rays and the sky
+│   └── make_readme_images.py  # rebuilds images/readme
 ├── tests/                     # pytest suite
-└── docs/assets/               # images used by this README
+├── images/
+│   ├── readme/                # images used by this README, tracked
+│   └── local/                 # figures written by the drivers, ignored
+└── reports/                   # text reports written by the drivers, ignored
 ```
 
-Entries marked `[roadmap N]` are planned, not yet written; see
-[ROADMAP.md](ROADMAP.md). Everything else is in place.
+Everything listed is in place; open work is tracked in
+[ROADMAP.md](ROADMAP.md).
 
 Every metric is written in the ADM form
 
@@ -188,7 +202,7 @@ paper:
 \theta = v_s \frac{x_s}{r_s} \frac{df}{dr_s}
 ```
 
-![Expansion scalar](docs/assets/02_expansion_scalar.png)
+![Expansion scalar](images/readme/alcubierre_expansion_scalar.png)
 
 **Energy density** seen by Eulerian observers, with $\rho^2 = y^2 + z^2$:
 
@@ -201,8 +215,8 @@ energy condition — and its distribution is a **torus** around the axis of
 motion. That torus is the physical reason concept ships are drawn with rings:
 the rings mark where the exotic matter has to be held.
 
-![Exotic matter distribution](docs/assets/03_energy_density.png)
-![Negative-energy shell and twin-ring hull](docs/assets/04_shell_3d.png)
+![Exotic matter distribution](images/readme/alcubierre_energy_density.png)
+![Negative-energy shell and twin-ring hull](images/readme/alcubierre_shell_3d.png)
 
 **Energy budget** — the angular integral is analytic,
 $`\int (\rho^2/r^2)\,d\Omega = 8\pi/3`$, which collapses the budget to a single
@@ -283,7 +297,7 @@ With the same shift wall, the pocket adds a thin shell carrying both signs of
 energy and holds more space than its coordinate size: at the default parameters
 10 m of coordinate radius hold 110 m of proper radius.
 
-![Alcubierre and Van Den Broeck on identical axes](docs/assets/05_comparison.png)
+![Alcubierre and Van Den Broeck on identical axes](images/readme/broeck_comparison.png)
 
 Where the thirty orders of magnitude come from, and where they stop: holding the
 pocket at 100 m of proper radius and the wall at $10^2$ Planck lengths, and
@@ -294,7 +308,7 @@ much smaller than the pocket. Shrinking the neck pays off until the wall drops
 below the transition region, near the paper's $R = 3 \times 10^{-15}$ m; below
 that the budget has a floor.
 
-![Exotic mass against neck radius](docs/assets/06_neck_scaling.png)
+![Exotic mass against neck radius](images/readme/broeck_neck_scaling.png)
 
 ## The view from the bridge
 
@@ -338,13 +352,13 @@ rays in one plane describes all of it. The views below are fisheye images of a
 procedural star field: straight ahead at the centre of each disc, straight
 behind at the rim, stars coloured by $E_\mathrm{ship}/E_\mathrm{far}$.
 
-![The sky seen from the centre of the bubble](docs/assets/07_sky.png)
+![The sky seen from the centre of the bubble](images/readme/sky_fisheye.png)
 
 Apart from the visible limit, the stars barely move: the apparent angle stays
 close to the true one until the last few degrees, where the sky is stretched
 over the rest of the view and redshifted to nothing.
 
-![Apparent angle and blueshift against the true angle](docs/assets/08_sky_mapping.png)
+![Apparent angle and blueshift against the true angle](images/readme/sky_mapping.png)
 
 For a ship at the centre, Van Den Broeck's pocket changes nothing: $B$ is
 spherically symmetric, so rays leaving the centre cross it radially and only

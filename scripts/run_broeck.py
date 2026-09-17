@@ -43,9 +43,9 @@ from warpdrive.viz import (                                   # noqa: E402
 )
 
 
-DEFAULT_OUTDIR = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), os.pardir, "output", "broeck"
-)
+ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir)
+DEFAULT_FIGURES = os.path.join(ROOT, "images", "local", "broeck")
+DEFAULT_REPORTS = os.path.join(ROOT, "reports")
 
 
 def parse_args(argv=None):
@@ -61,8 +61,12 @@ def parse_args(argv=None):
     parser.add_argument("--distance", type=float, default=4.2465,
                         help="target distance in light years "
                              "(default: 4.2465, Proxima Centauri)")
-    parser.add_argument("--outdir", default=DEFAULT_OUTDIR,
-                        help="output directory (default: ./output/broeck)")
+    parser.add_argument("--figures-dir", default=DEFAULT_FIGURES,
+                        help="figure directory, not tracked "
+                             "(default: ./images/local/broeck)")
+    parser.add_argument("--reports-dir", default=DEFAULT_REPORTS,
+                        help="report directory, not tracked "
+                             "(default: ./reports)")
     parser.add_argument("--no-figures", action="store_true",
                         help="skip all figures")
     return parser.parse_args(argv)
@@ -93,7 +97,8 @@ def format_neck_scaling(scaling):
 def main(argv=None):
     args = parse_args(argv)
     speed = args.speed * C_LIGHT
-    os.makedirs(args.outdir, exist_ok=True)
+    os.makedirs(args.figures_dir, exist_ok=True)
+    os.makedirs(args.reports_dir, exist_ok=True)
 
     # macroscopic configuration: resolvable by every generic tool
     broeck = BroeckMetric(speed=speed)
@@ -108,12 +113,13 @@ def main(argv=None):
 
     if not args.no_figures:
         print("figures ...")
-        paths = plot_all(broeck, args.outdir) + [
+        paths = plot_all(broeck, args.figures_dir) + [
             plot_metric_comparison(
                 alcubierre, broeck,
-                os.path.join(args.outdir, "05_comparison.png")),
+                os.path.join(args.figures_dir, "05_comparison.png")),
             plot_neck_scaling(
-                scaling, os.path.join(args.outdir, "06_neck_scaling.png")),
+                scaling,
+                os.path.join(args.figures_dir, "06_neck_scaling.png")),
         ]
         for path in paths:
             print("   ", os.path.relpath(path))
@@ -130,10 +136,12 @@ def main(argv=None):
     ]) + "\n"
     print("\n" + text)
 
-    with open(os.path.join(args.outdir, "mission_report.txt"), "w") as handle:
+    report_path = os.path.join(args.reports_dir, "broeck_mission.txt")
+    with open(report_path, "w") as handle:
         handle.write(text)
 
-    print(f"output written to {os.path.relpath(args.outdir)}")
+    print(f"figures written to {os.path.relpath(args.figures_dir)}")
+    print(f"report written to {os.path.relpath(report_path)}")
     return 0
 
 

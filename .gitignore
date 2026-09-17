@@ -1,5 +1,6 @@
-# --- Generated output ---
-output/
+# --- Generated output (README images live in images/readme and are tracked) ---
+images/local/
+reports/
 
 # --- Python ---
 __pycache__/
