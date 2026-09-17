@@ -75,6 +75,12 @@ class AlcubierreMetric(WarpMetric):
     def conformal_factor(self, x, y, z):
         return np.ones_like(np.asarray(x, dtype=float))
 
+    def shift_radial_derivative(self, r_s):
+        return self.speed * self.shape_derivative(r_s)
+
+    def conformal_radial_derivative(self, r_s):
+        return np.zeros_like(np.asarray(r_s, dtype=float))
+
     def expansion(self, x, y, z):
         """
         Expansion of the normal volume elements,

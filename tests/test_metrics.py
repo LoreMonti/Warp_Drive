@@ -11,7 +11,7 @@
 import numpy as np
 import pytest
 
-from warpdrive import AlcubierreMetric
+from warpdrive import AlcubierreMetric, BroeckMetric
 from warpdrive.constants import C_LIGHT
 
 
@@ -114,3 +114,25 @@ def test_superluminal_motion_outside_the_bubble_is_rejected(metric):
 def test_superluminal_flag():
     assert AlcubierreMetric(speed=2.0 * C_LIGHT).is_superluminal()
     assert not AlcubierreMetric(speed=0.5 * C_LIGHT).is_superluminal()
+
+
+@pytest.mark.parametrize("bubble", [
+    AlcubierreMetric(speed=10.0 * C_LIGHT, radius=100.0, sigma=0.1),
+    BroeckMetric(speed=10.0 * C_LIGHT),
+], ids=["alcubierre", "broeck"])
+def test_radial_derivatives_match_finite_differences(bubble):
+    """The ray equations take these as the gradients of beta and B."""
+
+    r = np.linspace(0.5, 3.0 * bubble.radius, 3001)
+    step = 1.0e-5
+
+    shift = lambda q: bubble.shift(q, 0.0, 0.0)
+    conformal = lambda q: bubble.conformal_factor(q, 0.0, 0.0)
+
+    for profile, derivative in ((shift, bubble.shift_radial_derivative),
+                                (conformal,
+                                 bubble.conformal_radial_derivative)):
+        numeric = (profile(r + step) - profile(r - step)) / (2.0 * step)
+        analytic = derivative(r)
+        scale = max(float(np.abs(analytic).max()), 1.0)
+        assert np.allclose(numeric, analytic, rtol=1e-5, atol=1e-5 * scale)

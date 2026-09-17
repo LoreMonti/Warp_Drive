@@ -153,6 +153,10 @@ class BroeckMetric(AlcubierreMetric):
     def conformal_factor(self, x, y, z):
         return self.conformal_profile(self._radius_from(x, y, z))
 
+    def conformal_radial_derivative(self, r_s):
+        return broeck_volume_profile_derivative(r_s,
+                                                **self._profile_parameters())
+
     def energy_density(self, x, y, z):
         """
         Energy density measured by the Eulerian observers, from

@@ -150,6 +150,17 @@ class WarpMetric(ABC):
         """Spatial conformal factor B(r_s), dimensionless."""
 
     @abstractmethod
+    def shift_radial_derivative(self, r_s):
+        """
+        d beta / d r_s [s^-1]. Both profiles are radial, so their
+        gradients are this times x_i / r_s; null geodesics need them.
+        """
+
+    @abstractmethod
+    def conformal_radial_derivative(self, r_s):
+        """dB / d r_s [m^-1]."""
+
+    @abstractmethod
     def expansion(self, x, y, z):
         """Expansion of the normal volume elements, theta. [s^-1]"""
 
