@@ -25,6 +25,11 @@ from warpdrive.viz import (                                 # noqa: E402
     plot_metric_comparison,
     plot_neck_scaling,
 )
+from warpdrive.viz.sky import (                             # noqa: E402
+    plot_sky,
+    plot_sky_mapping,
+    star_field,
+)
 from warpdrive.viz.figures import (                         # noqa: E402
     energy_norm,
     energy_ticks,
@@ -81,6 +86,26 @@ def test_comparison_figures_render(tmp_path):
                                str(tmp_path / "comparison.png")),
         plot_neck_scaling(neck_scaling(np.logspace(-14.5, 2.0, 6)),
                           str(tmp_path / "neck.png")),
+    ]
+    for path in paths:
+        assert (tmp_path / path.split("/")[-1]).stat().st_size > 10_000
+
+
+def test_star_field_is_uniform_on_the_sphere():
+    polar, azimuth, brightness = star_field(n_stars=20000, seed=1)
+
+    assert abs(np.cos(polar).mean()) < 0.02
+    assert brightness.max() == 1.0 and brightness.min() > 0.0
+
+
+def test_sky_figures_render(tmp_path):
+    bubbles = [AlcubierreMetric(speed=0.5 * C_LIGHT, radius=100.0, sigma=1.0),
+               AlcubierreMetric(speed=10.0 * C_LIGHT, radius=100.0,
+                                sigma=1.0)]
+    paths = [
+        plot_sky(bubbles, str(tmp_path / "sky.png"), n_stars=300,
+                 n_rays=181),
+        plot_sky_mapping(bubbles, str(tmp_path / "mapping.png"), n_rays=181),
     ]
     for path in paths:
         assert (tmp_path / path.split("/")[-1]).stat().st_size > 10_000

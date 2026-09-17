@@ -226,3 +226,67 @@ def horizon_surface_gravity(metric):
     if offset is None:
         return None
     return abs(float(metric.shift_radial_derivative(offset))) / C_LIGHT
+
+
+@dataclass
+class SkyMap:
+    """
+    Where every source on the sky appears from the centre of the bubble,
+    built from a fan of rays. Angles are measured from the direction of
+    travel; the azimuth about it is unchanged.
+    """
+
+    #: Look angles of the rays that reached a visible source [rad],
+    #: increasing.
+    look_angle: np.ndarray
+
+    #: True angle of the source seen along each look angle [rad].
+    source_angle: np.ndarray
+
+    #: E_ship / E_far along each look angle.
+    frequency_ratio: np.ndarray
+
+    #: Largest source angle that can be seen at all [rad]:
+    #: arccos(-c / v_s) for a superluminal bubble, pi otherwise.
+    visible_limit: float
+
+    def apparent(self, source_angle):
+        """
+        Look angle at which a source is seen and its frequency ratio;
+        NaN for sources beyond the visible limit.
+        """
+
+        source = np.asarray(source_angle, dtype=float)
+        visible = source <= self.source_angle[-1]
+        look = np.interp(source, self.source_angle, self.look_angle)
+        ratio = np.interp(source, self.source_angle, self.frequency_ratio)
+        return (np.where(visible, look, np.nan),
+                np.where(visible, ratio, np.nan))
+
+
+def sky_map(metric, n_rays=721, min_ratio=1.0e-6, **trace_options):
+    """
+    Trace a fan of look angles from 0 to pi and keep the rays that bring
+    in visible light, with frequency ratio above `min_ratio`.
+
+    The map from look angle to source angle is increasing, which a check
+    here enforces before it is inverted by interpolation.
+
+    Returns a SkyMap.
+    """
+
+    rays = trace_rays(metric, np.linspace(0.0, np.pi, n_rays),
+                      **trace_options)
+    keep = rays.escaped & (rays.frequency_ratio > min_ratio)
+    if not np.all(np.diff(rays.source_angle[keep]) > 0.0):
+        raise RuntimeError("look angle to source angle is not monotonic")
+
+    ratio = metric.speed / C_LIGHT
+    limit = np.arccos(-1.0 / ratio) if ratio > 1.0 else np.pi
+
+    return SkyMap(
+        look_angle=rays.look_angle[keep],
+        source_angle=rays.source_angle[keep],
+        frequency_ratio=rays.frequency_ratio[keep],
+        visible_limit=float(limit),
+    )

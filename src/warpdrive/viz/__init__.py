@@ -8,6 +8,7 @@ from .figures import (
     plot_shape_function,
     plot_shell_3d,
 )
+from .sky import plot_sky, plot_sky_mapping
 
 __all__ = [
     "animate_flyby",
@@ -18,4 +19,6 @@ __all__ = [
     "plot_shell_3d",
     "plot_metric_comparison",
     "plot_neck_scaling",
+    "plot_sky",
+    "plot_sky_mapping",
 ]

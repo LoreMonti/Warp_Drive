@@ -21,6 +21,7 @@ from warpdrive.geodesics import (
     ESCAPED,
     HORIZON,
     horizon_surface_gravity,
+    sky_map,
     trace_rays,
 )
 
@@ -145,3 +146,41 @@ def test_pocket_does_not_change_the_sky_seen_from_the_centre(bundle,
 def test_planck_thin_wall_is_refused():
     with pytest.raises(ValueError):
         trace_rays(BroeckMetric.from_paper(speed=10.0 * C_LIGHT), [0.0])
+
+
+# --- Sky map ---
+@pytest.fixture(scope="module")
+def sky(alcubierre):
+    return sky_map(alcubierre)
+
+
+def test_visible_limit_is_the_closed_form(sky):
+    """n_xi < c/v_s means a source angle below arccos(-c/v_s)."""
+
+    assert sky.visible_limit == pytest.approx(math.acos(-1.0 / SPEED_RATIO))
+    assert sky.source_angle[-1] == pytest.approx(sky.visible_limit,
+                                                 abs=1e-5)
+
+
+def test_apparent_positions_invert_the_traced_rays(sky, bundle):
+    visible = bundle.escaped & (bundle.frequency_ratio > 1e-3)
+    look, ratio = sky.apparent(bundle.source_angle[visible])
+
+    assert np.allclose(look, bundle.look_angle[visible], atol=1e-3)
+    assert np.allclose(ratio, bundle.frequency_ratio[visible], rtol=1e-3)
+
+
+def test_sources_beyond_the_limit_are_hidden(sky):
+    look, ratio = sky.apparent([0.0, sky.visible_limit + 0.01, math.pi])
+
+    assert look[0] == 0.0 and ratio[0] == pytest.approx(1.0 + SPEED_RATIO)
+    assert np.all(np.isnan(look[1:])) and np.all(np.isnan(ratio[1:]))
+
+
+def test_subluminal_sky_is_complete():
+    slow = sky_map(AlcubierreMetric(speed=0.5 * C_LIGHT, radius=100.0,
+                                    sigma=1.0), n_rays=91)
+
+    assert slow.visible_limit == math.pi
+    assert slow.source_angle[-1] == pytest.approx(math.pi)
+    assert slow.frequency_ratio[-1] == pytest.approx(0.5)
