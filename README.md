@@ -347,7 +347,8 @@ consequences, each checked against the ray integrator:
 From the centre the sky is symmetric about the direction of travel, so a fan of
 rays in one plane describes all of it. The views below are fisheye images of a
 procedural star field: straight ahead at the centre of each disc, straight
-behind at the rim, stars coloured by $E_\mathrm{ship}/E_\mathrm{far}$.
+behind at the rim, stars coloured by $E_\mathrm{ship}/E_\mathrm{far}$ and
+sized by the flux they deliver.
 
 ![The sky seen from the centre of the bubble](images/readme/sky_fisheye.png)
 
@@ -355,7 +356,33 @@ Apart from the visible limit, the stars barely move: the apparent angle stays
 close to the true one until the last few degrees, where the sky is stretched
 over the rest of the view and redshifted to nothing.
 
-![Apparent angle and blueshift against the true angle](images/readme/sky_mapping.png)
+**Brightness.** $I_\nu/\nu^3$ is conserved along a ray, so the surface
+brightness of the sky scales as the fourth power of the frequency ratio
+$R = E_\mathrm{ship}/E_\mathrm{far}$. A star is a point, so its flux also
+carries the magnification $\mu$, the ratio of the solid angles it covers with
+and without the bubble:
+
+```math
+\frac{F_\mathrm{ship}}{F_\mathrm{far}} = R^4\,\mu, \qquad \mu = \frac{\sin\theta_\mathrm{look}}{\sin\theta_\mathrm{source}}\,\frac{d\theta_\mathrm{look}}{d\theta_\mathrm{source}}
+```
+
+A star straight ahead arrives $`(1 + v_s/c)^4\,\mu`$ times brighter:
+$1.34 \times 10^4$ times at $10c$, where $11^4 = 14641$ is reduced by
+$\mu = 0.91$. Integrated over the view, an isotropic background of starlight
+reaches the crew
+
+```math
+\frac{1}{4\pi}\int R^4\,d\Omega_\mathrm{look} = \frac{1}{4\pi}\int R^4\,\mu\,d\Omega_\mathrm{source}
+```
+
+times brighter than at rest: 1.51 at $0.5c$, 12.1 at $2c$ and **1507 at
+$10c$**, most of it shifted into the ultraviolet. If the bubble shifted
+frequencies but left the stars in place ($\mu = 1$) the integral would have the
+closed form $[(1 + u)^5 - \max(0, 1 - u)^5]/(10u)$, with $u = v_s/c$; the
+distortion of the sky takes 6 % off it at $10c$. Both integrals are computed
+from the traced rays and agree to $10^{-6}$.
+
+![Apparent angle, blueshift and flux against the true angle](images/readme/sky_mapping.png)
 
 For a ship at the centre, Van Den Broeck's pocket changes nothing: $B$ is
 spherically symmetric, so rays leaving the centre cross it radially and only
@@ -422,7 +449,9 @@ Known obstructions, in rough order of severity:
 6. **The bulldozer problem.** The animation shows it directly: particles near
    the axis are captured, since $f = 1$ forces them to $\dot{x} = v_s$. The
    bubble sweeps up interstellar matter and releases it, extremely blueshifted,
-   at the destination (McMonigal, Lewis & O'Byrne 2012).
+   at the destination (McMonigal, Lewis & O'Byrne 2012). Light does the same
+   to the crew: at $10c$ the ship receives about 1500 times the ambient
+   starlight, blueshifted by up to a factor of 11.
 
 Modern work moves toward *subluminal* solitons with positive energy —
 Bobrick & Martire (2021), Lentz (2021), Fell & Heisenberg (2021),

@@ -156,9 +156,8 @@ one where the derivation carries the whole weight, and it exercises terms of
 - [x] Rendered star field at several $v_s$, for both metrics
       (`viz/sky.py`, `scripts/run_sky.py`)
 - [ ] Observer away from the centre of the pocket, one ray per pixel in 3D
-- [ ] Brightness of the sources, not only their colour: specific intensity
-      scales as $I_\nu/\nu^3$ and the solid angle is compressed near the
-      visible limit
+- [x] Brightness of the sources: flux $R^4\mu$ for a star, light received
+      from an isotropic background, and the effect of lensing on it
 
 The plan written before the implementation had two things wrong, recorded here
 because the tests now pin both.
@@ -204,6 +203,16 @@ Implementation notes:
   integration limit, tracing rays forwards; the blueshift still matched, since
   $H$ is conserved either way, and only the side on which the rear ray stalled
   exposed it;
+- brightness: $I_\nu/\nu^3$ is conserved, so surface brightness scales as
+  $R^4$ and a star's flux as $R^4\mu$. The plan expected $\mu$ to drop out of
+  the light received from an isotropic sky, leaving the closed form
+  $[(1+u)^5 - \max(0,1-u)^5]/(10u)$; it does not, since
+  $`\int R^4\,d\Omega_\mathrm{look} = \int R^4\mu\,d\Omega_\mathrm{source}`$. The
+  closed form is the unlensed value, 6 % above the traced one at $10c$;
+- $\mu$ needs the slope of the map from source to apparent angle. Taken as
+  $d\theta_\mathrm{source}/d\theta_\mathrm{look}$ on the evenly spaced look
+  angles and inverted it converges at second order, which a test checks;
+  differentiated along the uneven source angles it was far less accurate;
 - for a ship at the centre the two metrics show the same sky: $B$ is
   spherically symmetric and absent from the blueshift. Seeing the pocket needs
   the off-centre observer above.
