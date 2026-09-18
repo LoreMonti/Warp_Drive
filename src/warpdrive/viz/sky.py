@@ -34,6 +34,19 @@ def star_field(n_stars=2500, seed=7):
     return polar, azimuth, brightness / brightness.max()
 
 
+def star_sizes(brightness, flux_ratio):
+    """
+    Marker areas for stars of intrinsic `brightness` seen with a flux
+    `flux_ratio` times their flux at rest: the area grows as the apparent
+    flux to the power 0.2, so a factor of 1e4 still fits on the page
+    without merging neighbouring stars, and is clipped to stay visible
+    and bounded.
+    """
+
+    apparent = np.asarray(brightness) * np.asarray(flux_ratio)
+    return np.clip(4.0 * apparent ** 0.2, 0.2, 14.0)
+
+
 def _ratio_colours():
     """Red below the rest frequency, blue above, log10 of the ratio."""
 
@@ -59,7 +72,8 @@ def plot_sky(metrics, path, n_stars=2500, seed=7, n_rays=721):
 
     The centre of each disc is straight ahead, the rim straight behind,
     and the radius is the angle from the direction of travel. Stars are
-    coloured by the frequency ratio E_ship / E_far, and the rings mark
+    coloured by the frequency ratio E_ship / E_far and sized by the flux
+    they deliver, R^4 mu times their flux at rest, and the rings mark
     where the true source angles of 30, 60, ... degrees appear. The black
     rim is where the light reaching the ship is redshifted below the
     threshold of `sky_map`: it comes from a vanishing sliver of sky next
@@ -83,9 +97,11 @@ def plot_sky(metrics, path, n_stars=2500, seed=7, n_rays=721):
 
         if sky is None:
             look, ratio = polar, np.ones_like(polar)
+            flux = np.ones_like(polar)
             rings = {g: float(g) for g in GRID_DEGREES}
         else:
             look, ratio = sky.apparent(polar)
+            flux = sky.flux_ratio(polar)
             rings = {g: float(np.degrees(sky.apparent(np.radians(g))[0]))
                      for g in GRID_DEGREES}
             dark = float(np.degrees(sky.look_angle[-1]))
@@ -99,7 +115,7 @@ def plot_sky(metrics, path, n_stars=2500, seed=7, n_rays=721):
 
         seen = np.isfinite(look)
         ax.scatter(azimuth[seen], np.degrees(look[seen]),
-                   s=0.5 + 7.0 * brightness[seen],
+                   s=star_sizes(brightness[seen], flux[seen]),
                    c=np.log10(ratio[seen]), cmap=cmap, norm=norm,
                    linewidths=0, zorder=2)
 
@@ -125,12 +141,12 @@ def plot_sky(metrics, path, n_stars=2500, seed=7, n_rays=721):
 
 def plot_sky_mapping(metrics, path, n_rays=721):
     """
-    Where a source appears, and how blueshifted, against its true angle,
-    for several bubbles; dotted lines mark the visible limit
-    arccos(-c / v_s).
+    Where a source appears, how blueshifted and how much brighter,
+    against its true angle, for several bubbles; dotted lines mark the
+    visible limit arccos(-c / v_s).
     """
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.0, 4.6))
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(16.0, 4.6))
     fig.patch.set_facecolor(BG)
     colours = plt.get_cmap("plasma")(np.linspace(0.2, 0.85, len(metrics)))
 
@@ -146,8 +162,10 @@ def plot_sky_mapping(metrics, path, n_rays=721):
                  label=label)
         ax2.semilogy(np.degrees(source), ratio, color=colour, lw=1.8,
                      label=label)
+        ax3.semilogy(np.degrees(source), sky.flux_ratio(source),
+                     color=colour, lw=1.8, label=label)
         if sky.visible_limit < np.pi:
-            for ax in (ax1, ax2):
+            for ax in (ax1, ax2, ax3):
                 ax.axvline(np.degrees(sky.visible_limit), color=colour,
                            lw=0.8, ls=":")
 
@@ -158,7 +176,11 @@ def plot_sky_mapping(metrics, path, n_rays=721):
     ax2.set_xlabel(xlabel)
     ax2.set_ylabel(r"$E_\mathrm{ship}/E_\mathrm{far}$")
     ax2.set_title(r"Blueshift, $1 - (v_s/c)\,n_\xi$")
-    for ax in (ax1, ax2):
+    ax3.set_xlabel(xlabel)
+    ax3.set_ylabel(r"$F_\mathrm{ship}/F_\mathrm{far}$")
+    ax3.set_title(r"Flux of a star, $R^4\,\mu$")
+    ax3.axhline(1.0, color=FG, lw=0.8, ls="--", alpha=0.5)
+    for ax in (ax1, ax2, ax3):
         ax.set_xlim(0.0, 180.0)
         dark_axes(ax)
         legend = ax.legend(facecolor=BG, edgecolor=EDGE, labelcolor=FG,

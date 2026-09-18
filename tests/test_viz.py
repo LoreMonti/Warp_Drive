@@ -29,6 +29,7 @@ from warpdrive.viz.sky import (                             # noqa: E402
     plot_sky,
     plot_sky_mapping,
     star_field,
+    star_sizes,
 )
 from warpdrive.viz.figures import (                         # noqa: E402
     energy_norm,
@@ -109,3 +110,12 @@ def test_sky_figures_render(tmp_path):
     ]
     for path in paths:
         assert (tmp_path / path.split("/")[-1]).stat().st_size > 10_000
+
+
+def test_star_sizes_grow_with_flux_and_stay_bounded():
+    flux = np.array([1e-8, 1e-2, 1.0, 1e2, 1e4, 1e8])
+    sizes = star_sizes(np.ones_like(flux), flux)
+
+    assert np.all(np.diff(sizes) >= 0.0)
+    assert sizes[0] == 0.2 and sizes[-1] == 14.0
+    assert sizes[2] == 4.0

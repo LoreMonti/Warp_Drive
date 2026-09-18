@@ -34,6 +34,7 @@ from warpdrive import (                                       # noqa: E402
     C_LIGHT,
     horizon_surface_gravity,
     trace_rays,
+    unlensed_brightness,
 )
 from warpdrive.geodesics import sky_map                       # noqa: E402
 from warpdrive.viz import plot_sky, plot_sky_mapping          # noqa: E402
@@ -77,6 +78,12 @@ def format_sky_table(bubbles):
         f"{'sky hidden':>10} | {'rear horizon':>12} | {'kappa':>9}",
         "  " + "-" * 72,
     ]
+    light = [
+        "  BRIGHTNESS",
+        f"  {'v_s/c':>6} | {'star ahead':>10} | {'starlight':>9} | "
+        f"{'unlensed':>9} | {'lensing':>7}",
+        "  " + "-" * 54,
+    ]
     for metric in bubbles:
         ratio = metric.speed / C_LIGHT
         sky = sky_map(metric)
@@ -91,11 +98,22 @@ def format_sky_table(bubbles):
             f"{math.degrees(sky.visible_limit):>11.2f} ° | "
             f"{100.0 * hidden:>8.1f} % | {horizon} | {gravity}"
         )
+        received = sky.sky_brightness()
+        unlensed = unlensed_brightness(ratio)
+        light.append(
+            f"  {ratio:>6g} | {float(sky.flux_ratio(0.0)):>9.4g}x | "
+            f"{received:>8.4g}x | {unlensed:>8.4g}x | "
+            f"{100.0 * (received / unlensed - 1.0):>+6.1f}%"
+        )
     lines.append("  ahead: E_ship / E_far for a star straight ahead, "
                  "1 + v_s/c")
     lines.append("  sky hidden: solid-angle fraction beyond arccos(-c/v_s), "
                  "(1 - c/v_s) / 2")
-    return "\n".join(lines)
+    light.append("  star ahead: flux R^4 mu of a star straight ahead")
+    light.append("  starlight: light received from an isotropic background")
+    light.append("  unlensed: the same if the stars stayed in place, "
+                 "((1+u)^5 - max(0,1-u)^5) / 10u")
+    return "\n".join(lines) + "\n\n" + "\n".join(light)
 
 
 def main(argv=None):
