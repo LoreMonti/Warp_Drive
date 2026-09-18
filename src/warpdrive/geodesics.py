@@ -31,6 +31,15 @@
 # travel, so it is fully described by rays in one meridional plane, as a
 # function of the angle between the line of sight and the motion.
 #
+# Brightness follows from I_nu / nu^3 being conserved along a ray: surface
+# brightness scales as R^4, R = E_ship / E_far, and a point source is
+# further magnified by the ratio of solid angles mu of the map from true
+# to apparent position, so its flux scales as R^4 mu. The light received
+# from an isotropic background is the surface brightness integrated over
+# the apparent sky, (1/4pi) \int R^4 dOmega_look, which equals
+# (1/4pi) \int R^4 mu dOmega_source: the distortion of the sky enters,
+# and there is no closed form for it.
+#
 # Author: Lorenzo Monti
 # ==========================================================
 
@@ -263,6 +272,63 @@ class SkyMap:
         return (np.where(visible, look, np.nan),
                 np.where(visible, ratio, np.nan))
 
+    def _magnification_samples(self):
+        """
+        mu on the traced rays, with its limit (d look / d source)^2 on the
+        axis, where both sines vanish. The rays are evenly spaced in look
+        angle, so the slope is taken as d source / d look on that grid and
+        inverted: differentiating along the uneven source angles instead
+        loses two orders of magnitude of accuracy.
+        """
+
+        slope = 1.0 / np.gradient(self.source_angle, self.look_angle)
+        on_axis = self.source_angle < 1.0e-9
+        safe = np.where(on_axis, 1.0, self.source_angle)
+        mu = np.sin(self.look_angle) / np.sin(safe) * slope
+        return np.where(on_axis, slope ** 2, mu)
+
+    def magnification(self, source_angle):
+        """
+        Ratio of the solid angle a source covers from the ship to the one
+        it covers without the bubble,
+
+            mu = (sin theta_look / sin theta_source)
+                 (d theta_look / d theta_source),
+
+        NaN beyond the visible limit.
+        """
+
+        source = np.asarray(source_angle, dtype=float)
+        mu = np.interp(source, self.source_angle,
+                       self._magnification_samples())
+        return np.where(source <= self.source_angle[-1], mu, np.nan)
+
+    def flux_ratio(self, source_angle):
+        """
+        Flux of a point source seen from the ship over its flux without
+        the bubble, R^4 mu: surface brightness scales as R^4 because
+        I_nu / nu^3 is conserved along the ray. NaN beyond the visible
+        limit.
+        """
+
+        _, ratio = self.apparent(source_angle)
+        return ratio ** 4 * self.magnification(source_angle)
+
+    def sky_brightness(self):
+        """
+        Light received from an isotropic background, over the light
+        received without the bubble:
+
+            (1/4pi) \\int R^4 dOmega_look.
+
+        The integral runs over the apparent sky, directly on the traced
+        rays. Rays dropped as redshifted below `sky_map`'s threshold
+        contribute below that threshold to the fourth power.
+        """
+
+        integrand = self.frequency_ratio ** 4 * np.sin(self.look_angle)
+        return 0.5 * float(np.trapezoid(integrand, self.look_angle))
+
 
 def sky_map(metric, n_rays=721, min_ratio=1.0e-6, **trace_options):
     """
@@ -290,3 +356,23 @@ def sky_map(metric, n_rays=721, min_ratio=1.0e-6, **trace_options):
         frequency_ratio=rays.frequency_ratio[keep],
         visible_limit=float(limit),
     )
+
+
+
+def unlensed_brightness(speed_ratio):
+    """
+    What `SkyMap.sky_brightness` would be if the bubble shifted every
+    frequency but left every star where it is (mu = 1):
+
+        (1/2) \\int R^4 dn_xi = [(1 + u)^5 - max(0, 1 - u)^5] / (10 u),
+
+    over the visible far-field directions -1 < n_xi < min(1, c/v_s), with
+    u = v_s / c. It is not the light received, which also carries the
+    distortion of the sky; the two differ by 6 % at 10c, and the gap
+    measures how much the bubble lenses the background.
+    """
+
+    u = float(speed_ratio)
+    if u == 0.0:
+        return 1.0
+    return ((1.0 + u) ** 5 - max(0.0, 1.0 - u) ** 5) / (10.0 * u)

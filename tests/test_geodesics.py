@@ -23,6 +23,7 @@ from warpdrive.geodesics import (
     horizon_surface_gravity,
     sky_map,
     trace_rays,
+    unlensed_brightness,
 )
 
 SPEED_RATIO = 10.0
@@ -184,3 +185,73 @@ def test_subluminal_sky_is_complete():
     assert slow.visible_limit == math.pi
     assert slow.source_angle[-1] == pytest.approx(math.pi)
     assert slow.frequency_ratio[-1] == pytest.approx(0.5)
+
+
+# --- Brightness ---
+def test_flat_space_changes_no_brightness():
+    rest = sky_map(AlcubierreMetric(speed=1.0e-9 * C_LIGHT, radius=100.0,
+                                    sigma=1.0))
+    angles = np.linspace(0.0, math.pi, 7)
+
+    assert np.allclose(rest.magnification(angles), 1.0, atol=1e-6)
+    assert np.allclose(rest.flux_ratio(angles), 1.0, atol=1e-6)
+    assert rest.sky_brightness() == pytest.approx(1.0, rel=1e-5)
+
+
+def test_star_ahead_is_brighter_by_the_fourth_power(sky):
+    assert sky.flux_ratio(0.0) == pytest.approx(
+        (1.0 + SPEED_RATIO) ** 4 * float(sky.magnification(0.0)),
+        rel=1e-9)
+
+
+def test_magnification_conserves_the_apparent_solid_angle(alcubierre):
+    """
+    \\int mu dOmega_source = \\int dOmega_look, over the part of the sky
+    with R > 0.1. On a finite fan of rays the two differ by a
+    discretisation error, which must fall as the square of the ray
+    spacing: halving the spacing divides it by four.
+    """
+
+    def mismatch(n_rays):
+        fan = sky_map(alcubierre, n_rays=n_rays)
+        keep = fan.frequency_ratio > 0.1
+        source = fan.source_angle[keep]
+        covered = np.trapezoid(fan.magnification(source) * np.sin(source),
+                               source)
+        return covered / (1.0 - math.cos(fan.look_angle[keep][-1])) - 1.0
+
+    coarse, fine = mismatch(361), mismatch(721)
+
+    assert abs(fine) < 1e-4
+    assert coarse / fine == pytest.approx(4.0, rel=0.1)
+
+
+def test_received_light_is_the_same_on_either_sky(sky):
+    """
+    The light from an isotropic background, integrated over the apparent
+    sky, must equal R^4 mu integrated over the true one: two routes, one
+    through the traced rays and one through the magnification.
+    """
+
+    source = sky.source_angle
+    through_source = 0.5 * np.trapezoid(
+        sky.frequency_ratio ** 4 * sky.magnification(source)
+        * np.sin(source), source)
+
+    assert through_source == pytest.approx(sky.sky_brightness(), rel=1e-6)
+
+
+def test_lensing_is_what_separates_the_received_light_from_the_unlensed():
+    """
+    Slow bubbles barely distort the sky, so the closed form without
+    magnification holds; at 10c the distortion takes 6 % off it.
+    """
+
+    for speed, tolerance in ((0.5, 1e-3), (2.0, 1e-2)):
+        slow = sky_map(AlcubierreMetric(speed=speed * C_LIGHT, radius=100.0,
+                                        sigma=1.0))
+        assert slow.sky_brightness() == pytest.approx(
+            unlensed_brightness(speed), rel=tolerance)
+
+    assert unlensed_brightness(SPEED_RATIO) == pytest.approx(
+        (1.0 + SPEED_RATIO) ** 5 / (10.0 * SPEED_RATIO))
