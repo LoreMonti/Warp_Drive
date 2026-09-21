@@ -27,6 +27,9 @@ from warpdrive.viz import (                                 # noqa: E402
 )
 from warpdrive.viz.sky import (                             # noqa: E402
     plot_sky,
+    checkerboard,
+    fisheye_directions,
+    plot_offcentre_sky,
     plot_sky_mapping,
     star_field,
     star_sizes,
@@ -119,3 +122,30 @@ def test_star_sizes_grow_with_flux_and_stay_bounded():
     assert np.all(np.diff(sizes) >= 0.0)
     assert sizes[0] == 0.2 and sizes[-1] == 14.0
     assert sizes[2] == 4.0
+
+
+def test_fisheye_puts_ahead_at_the_centre_and_behind_on_the_rim():
+    directions, inside = fisheye_directions(101)
+    grid = np.full(inside.shape + (3,), np.nan)
+    grid[inside] = directions.T
+
+    assert np.allclose(grid[50, 50], [1.0, 0.0, 0.0])
+    assert np.allclose(grid[50, 100], [-1.0, 0.0, 0.0], atol=1e-12)
+    assert np.allclose(grid[50, 75], [0.0, 1.0, 0.0], atol=1e-12)
+    assert np.allclose(np.linalg.norm(directions, axis=0), 1.0)
+
+
+def test_checkerboard_alternates_across_cells():
+    polar = np.radians([7.5, 22.5, 7.5])
+    azimuth = np.radians([7.5, 7.5, 22.5])
+    source = np.array([np.cos(polar), np.sin(polar) * np.cos(azimuth),
+                       np.sin(polar) * np.sin(azimuth)])
+
+    assert list(checkerboard(source)) == [1.0, 0.45, 0.45]
+
+
+def test_offcentre_figure_renders(tmp_path):
+    path = plot_offcentre_sky(BroeckMetric(speed=10.0 * C_LIGHT),
+                              [0.0, 60.0], str(tmp_path / "offcentre.png"),
+                              resolution=61, window_resolution=31)
+    assert (tmp_path / "offcentre.png").stat().st_size > 10_000
