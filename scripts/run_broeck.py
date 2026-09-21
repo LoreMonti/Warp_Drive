@@ -40,6 +40,7 @@ from warpdrive.viz import (                                   # noqa: E402
     plot_all,
     plot_metric_comparison,
     plot_neck_scaling,
+    plot_pocket_throat,
 )
 
 
@@ -120,6 +121,8 @@ def main(argv=None):
             plot_neck_scaling(
                 scaling,
                 os.path.join(args.figures_dir, "06_neck_scaling.png")),
+            plot_pocket_throat(
+                broeck, os.path.join(args.figures_dir, "07_throat.png")),
         ]
         for path in paths:
             print("   ", os.path.relpath(path))

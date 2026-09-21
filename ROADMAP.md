@@ -290,10 +290,18 @@ Literature:
 - [ ] Gauthier, Gravel and Melanson, *New lower bounds for warp drive energy*,
       Int. J. Mod. Phys. A **17**, 2761 (2002): a single page, not freely
       available; needs library access
-- [ ] Hochberg and Visser on the geometry of static and dynamic wormhole
-      throats (1997, 1998), and Morris and Thorne (1988): the exact hypotheses
-      of the flare-out theorem, and whether a throat of trivial topology, as in
-      a Van Den Broeck pocket, satisfies them
+- [x] Hochberg and Visser, *Geometric structure of the generic static
+      traversable wormhole throat* (1997): the throat is defined geometrically,
+      as a minimal surface in a static slice with a flare-out condition, and
+      throats of trivial topology are explicitly included, with a closed region
+      joined to flat space by a narrow neck as their example; the strong
+      flare-out condition implies a violation of the null energy condition at
+      the throat
+- [ ] Morris and Thorne (1988) and Hochberg and Visser's dynamic follow-up
+      (1998), for completeness
+- [ ] A Baylor thesis on curvature invariants of wormholes and warped
+      spacetimes, flagged by a search, to confirm no one has described the
+      pocket as a wormhole of trivial topology
 - [ ] Loup's Natário–Broeck papers and *Warp drive basics* (2021), for any
       statement on the throat or on a lower energy bound
 - [ ] Initial-data literature on conformally flat, time-symmetric slices
@@ -302,17 +310,27 @@ Literature:
 
 3a — The throat as a minimal surface:
 
-- [ ] Show that inside the shift wall, in the frame of the bubble, the metric
+- [x] Show that inside the shift wall, in the frame of the bubble, the metric
       is ultrastatic, $`-c^2 dt^2 + B^2\delta_{ij}\,dx^i dx^j`$, so the slices are
       time-symmetric there and the throat, where the areal radius $`B\,r`$ is
       smallest, is a minimal surface
-- [ ] Derive the radial pressure from the Einstein tensor in `symbolic.py`,
+- [x] Derive the radial pressure from the Einstein tensor in `symbolic.py`,
       and the null contraction $\varepsilon + p_r$ for radial light rays
-- [ ] Verify that $\varepsilon + p_r < 0$ at the throat for every profile, and
+- [x] Verify that $\varepsilon + p_r < 0$ at the throat for every profile, and
       at every $v_s$, as the flare-out theorem requires; locate where the
       violation sits
-- [ ] Tests: the sign at the throat for several profiles, the null
+- [x] Tests: the sign at the throat for several profiles, the null
       contraction against the derivation, and flat space
+- [x] Figure of the areal radius and the null energy across the pocket
+      (`plot_pocket_throat`)
+
+What 3a found: the radial null contraction inside the shift wall is
+$`\varepsilon + p_r = -(c^4/8\pi G)\,(2/A)\,d^2A/d\ell^2`$, derived twice, in the
+moving Cartesian chart and in a static spherical one, which agree to $10^{-9}$.
+A pocket larger inside than outside has a minimal sphere where the condition
+fails, for any profile and any $v_s$; the condition is sufficient, not
+necessary. The violation integrates to zero against $`A\,d\ell`$, balanced by the
+region round the maximum of $A$.
 
 3b — A lower bound on $E_\mathrm{tot}$:
 

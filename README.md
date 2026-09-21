@@ -290,6 +290,41 @@ and the curvature radius of eq. (20), placed at $w = 0.349$ where the printed
 profile has $B - 1 \sim 10^{-18}$. The computation finds both near
 $w \approx 0.575$; they are not used as checks.
 
+**The pocket is a throat.** Inside the shift wall, in the frame of the bubble,
+$f = 1$ and the metric is ultrastatic,
+
+```math
+ds^2 = -c^2 dt^2 + B(r)^2\left(dr^2 + r^2 d\Omega^2\right)
+```
+
+so its stress-energy depends on the geometry of space alone, not on $v_s$.
+With the proper radial distance $`d\ell = B\,dr`$ and the areal radius
+$`A = B\,r`$, the circumference of a sphere over $2\pi$, the null energy along
+radial light rays is
+
+```math
+\varepsilon + p_r = -\frac{c^4}{8\pi G}\,\frac{2}{A}\,\frac{d^2 A}{d\ell^2}
+```
+
+the relation of a Morris–Thorne wormhole throat. In the flat pocket and outside
+the transition $dA/d\ell = 1$; a pocket larger inside than outside,
+$(1 + \alpha)\tilde R > \tilde R + \tilde\Delta$, forces $A$ to fall to a
+minimum and rise again. That minimal sphere flares out, so by Hochberg and
+Visser's theorem, whose definition of a throat is geometric and covers trivial
+topology, the null energy condition fails there: **for any profile of $B$, at
+any speed, for every observer**. The pocket needs exotic matter even at rest,
+for a reason that does not depend on how the energy of a warp bubble is
+defined. For the default pocket the throat has an areal radius of 11.2 m and
+$`\varepsilon + p_r = -1.35\,c^4/8\pi G`$ per square metre there; for the 1999
+configuration the throat is $1.46 \times 10^{-15}$ m across. Since
+$dA/d\ell$ is 1 on both sides, $`\int (\varepsilon + p_r)\,A\,d\ell = 0`$: the
+violation is balanced exactly by the region round the maximum of $A$, where the
+condition holds. The derivation is done twice, in the moving Cartesian chart of
+`symbolic.derive` and in the static spherical chart of `symbolic.derive_pocket`,
+and the two agree to $10^{-9}$.
+
+![The areal radius and the null energy across the pocket](images/readme/broeck_throat.png)
+
 With the same shift wall, the pocket adds a thin shell carrying both signs of
 energy and holds more space than its coordinate size: at the default parameters
 10 m of coordinate radius hold 110 m of proper radius.

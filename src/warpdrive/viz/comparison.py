@@ -9,7 +9,7 @@
 import numpy as np
 
 # --- Local imports ---
-from ..constants import C_LIGHT, M_SUN
+from ..constants import C_LIGHT, G, M_SUN
 from .figures import energy_norm, energy_ticks
 from .style import (
     ACCENT,
@@ -151,6 +151,70 @@ def plot_neck_scaling(scaling, path, paper_neck=3.0e-15):
                  "the pocket's transition region sets the floor")
     dark_axes(ax)
     _legend(ax, loc="center right")
+
+    fig.tight_layout()
+    return save(fig, path)
+
+
+def plot_pocket_throat(broeck, path, n_points=40001):
+    """
+    The throat of the pocket, against the proper radial distance from its
+    centre: the areal radius A = B r on top, the radial null contraction
+    eps + p_r below, in units of c^4 / 8 pi G per square metre.
+
+    A pocket larger inside than outside forces A to fall and rise again;
+    at its minimum, the throat, A is convex in proper distance and the
+    null energy condition fails. The region round the maximum of A, where
+    it holds, balances the violation exactly in the integral
+    int (eps + p_r) A dl = 0.
+    """
+
+    inner = broeck.inner_radius
+    outer = inner + broeck.thickness
+    r = np.linspace(0.8 * inner, outer + 0.25 * broeck.thickness, n_points)
+    conformal = broeck.conformal_profile(r)
+    proper = np.concatenate([[0.0], np.cumsum(
+        0.5 * (conformal[1:] + conformal[:-1]) * np.diff(r))])
+    proper += float(broeck.conformal_profile(0.0)) * r[0]
+    areal = broeck.areal_radius(r)
+    unit = C_LIGHT ** 4 / (8.0 * np.pi * G)
+    null = broeck.pocket_null_energy(r) / unit
+
+    radius, throat_areal = broeck.throat()
+    throat_proper = float(np.interp(radius, r, proper))
+    peak = int(np.argmax(areal * (r <= radius)))
+
+    fig, (top, bottom) = dark_figure(2, 1, figsize=(8.5, 7.0), sharex=True)
+
+    top.plot(proper, areal, color=TRACER, lw=2.0,
+             label=r"areal radius $A = B\,r$")
+    top.plot(proper, proper, color=FG, lw=0.8, ls="--", alpha=0.5,
+             label=r"flat space, $A = \ell$")
+    top.plot(throat_proper, throat_areal, "o", color=ACCENT, ms=7,
+             label=f"throat: A = {throat_areal:.2f} m")
+    top.plot(proper[peak], areal[peak], "s", color="#ff9f43", ms=6,
+             label=f"maximum: A = {areal[peak]:.1f} m")
+    top.set_ylabel(r"$A$  [m]")
+    top.set_title("The pocket is a throat: A falls to a minimum and "
+                  "rises again")
+    dark_axes(top)
+    _legend(top, loc="upper right")
+
+    bottom.plot(proper, null, color=ACCENT, lw=1.6)
+    bottom.fill_between(proper, null, 0.0, where=null < 0.0, color=ACCENT,
+                        alpha=0.25, label="null energy condition violated")
+    bottom.fill_between(proper, null, 0.0, where=null > 0.0, color="#ff9f43",
+                        alpha=0.25, label="null energy condition holds")
+    bottom.axhline(0.0, color=FG, lw=0.6, alpha=0.4)
+    bottom.axvline(throat_proper, color=ACCENT, lw=0.8, ls=":")
+    bottom.set_yscale("symlog", linthresh=1e-3)
+    bottom.set_xlabel(r"proper distance from the centre  $\ell$  [m]")
+    bottom.set_ylabel(r"$(\varepsilon + p_r)\,/\,(c^4/8\pi G)$  [m$^{-2}$]")
+    bottom.set_title(r"$\varepsilon + p_r = -\frac{c^4}{8\pi G}\,"
+                     r"\frac{2}{A}\,\frac{d^2A}{d\ell^2}$, "
+                     "independent of the speed of the bubble")
+    dark_axes(bottom)
+    _legend(bottom, loc="lower left")
 
     fig.tight_layout()
     return save(fig, path)

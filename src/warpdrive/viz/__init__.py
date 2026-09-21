@@ -1,6 +1,10 @@
 # --- Visualisation ---
 from .animation import animate_flyby
-from .comparison import plot_metric_comparison, plot_neck_scaling
+from .comparison import (
+    plot_metric_comparison,
+    plot_neck_scaling,
+    plot_pocket_throat,
+)
 from .figures import (
     plot_all,
     plot_energy_density,
@@ -19,6 +23,7 @@ __all__ = [
     "plot_shell_3d",
     "plot_metric_comparison",
     "plot_neck_scaling",
+    "plot_pocket_throat",
     "plot_sky",
     "plot_sky_mapping",
     "plot_offcentre_sky",

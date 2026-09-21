@@ -24,6 +24,7 @@ from warpdrive.viz import (                                 # noqa: E402
     plot_all,
     plot_metric_comparison,
     plot_neck_scaling,
+    plot_pocket_throat,
 )
 from warpdrive.viz.sky import (                             # noqa: E402
     plot_sky,
@@ -149,3 +150,9 @@ def test_offcentre_figure_renders(tmp_path):
                               [0.0, 60.0], str(tmp_path / "offcentre.png"),
                               resolution=61, window_resolution=31)
     assert (tmp_path / "offcentre.png").stat().st_size > 10_000
+
+
+def test_throat_figure_renders(tmp_path):
+    path = plot_pocket_throat(BroeckMetric(speed=C_LIGHT),
+                              str(tmp_path / "throat.png"), n_points=2001)
+    assert (tmp_path / "throat.png").stat().st_size > 10_000

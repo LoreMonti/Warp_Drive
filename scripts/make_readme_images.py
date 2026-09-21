@@ -43,6 +43,7 @@ from warpdrive.viz import (                                   # noqa: E402
     plot_metric_comparison,
     plot_neck_scaling,
     plot_offcentre_sky,
+    plot_pocket_throat,
     plot_shell_3d,
     plot_sky,
     plot_sky_mapping,
@@ -91,6 +92,7 @@ def main(argv=None):
                                  sigma=broeck.sigma)
     paths.append(plot_metric_comparison(same_wall, broeck,
                                         target("broeck_comparison.png")))
+    paths.append(plot_pocket_throat(broeck, target("broeck_throat.png")))
 
     # neck scan at v_s = c, 100 m pocket, wall of 1e2 Planck lengths
     necks = np.logspace(np.log10(3.0e-15), np.log10(100.0), 60)
