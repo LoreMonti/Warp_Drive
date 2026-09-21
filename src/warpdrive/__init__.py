@@ -9,8 +9,9 @@ from .diagnostics import (
     MissionProfile,
     NeckScaling,
     energy_scaling_table,
-    neck_scaling,
     format_profile,
+    neck_scaling,
+    pocket_energy_floor,
     profile_mission,
     relativistic_rocket,
 )
@@ -51,6 +52,7 @@ __all__ = [
     "energy_scaling_table",
     "NeckScaling",
     "neck_scaling",
+    "pocket_energy_floor",
     "relativistic_rocket",
     "integrate_tracers",
     "RayBundle",

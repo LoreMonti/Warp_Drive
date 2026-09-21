@@ -198,6 +198,38 @@ class BroeckMetric(AlcubierreMetric):
         radial, tangential = self.pocket_pressures(r_s)
         return -2.0 * tangential
 
+    def pocket_energy_bound(self):
+        """
+        Lower bound on the net E_tot of the transition region [J].
+
+        With psi = sqrt(B) the static density is
+        eps = -(c^4 / 2 pi G) lap(psi) / psi^5, and integrating it over the
+        proper volume psi^6 dV by parts, with psi' = 0 at both edges,
+
+            E_tot = (2 c^4 / G) \\int_a^b psi'^2 r^2 dr,
+
+        a Dirichlet integral. Among all profiles with psi(a) = sqrt(1 +
+        alpha) and psi(b) = 1 it is smallest for the harmonic psi = C1 +
+        C2 / r, which gives
+
+            E_tot >= (2 c^4 / G) (sqrt(1 + alpha) - 1)^2 a b / (b - a),
+
+        a = R~, b = R~ + D~. The harmonic profile has kinks at both edges,
+        a positive shell on the pocket and a negative one on the neck, so
+        no smooth profile reaches the bound, but smooth profiles approach
+        it as closely as wanted.
+
+        E_tot is the Eulerian energy integrated over a slice, the quantity
+        Van Den Broeck and Pfenning and Ford use; it depends on the
+        foliation and is not a mass (Barzegar, Buchert and Vigneron 2026).
+        """
+
+        a = self.inner_radius
+        b = a + self.thickness
+        centre = math.sqrt(1.0 + self.alpha)
+        return (2.0 * C_LIGHT ** 4 / G * (centre - 1.0) ** 2
+                * a * b / (b - a))
+
     def throat(self, n_points=400001):
         """
         The minimal sphere of the pocket: the coordinate radius and the

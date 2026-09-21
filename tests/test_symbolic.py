@@ -321,3 +321,19 @@ def test_pocket_null_contraction_matches_the_general_derivation(
         derived = float(moving(0.0, x, y, z, SPEED_RATIO))
         assert derived == pytest.approx(throat_form(radius), rel=1e-9,
                                         abs=1e-60)
+
+
+def test_pocket_density_is_a_laplacian_of_psi(pocket):
+    """
+    With psi = sqrt(B) the static density is -4 lap(psi) / psi^5 in units
+    of c^4/8 pi G, which makes E_tot over the proper volume psi^6 dV a
+    Dirichlet integral after one integration by parts.
+    """
+
+    r = pocket["coords"][1]
+    B = pocket["conformal"]
+    psi = sp.Function("psi")(r)
+    density = pocket["energy_density"].subs(B, psi ** 2).doit()
+    laplacian = sp.diff(psi, r, 2) + 2 * sp.diff(psi, r) / r
+
+    assert sp.simplify(density + 4 * laplacian / psi ** 5) == 0

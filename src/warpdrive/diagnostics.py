@@ -16,6 +16,7 @@ import numpy as np
 from .constants import (
     C_LIGHT,
     D_PROXIMA,
+    G,
     G_EARTH,
     L_PLANCK,
     LY,
@@ -211,6 +212,34 @@ def energy_scaling_table(metric_factory, speeds, radii):
         add(f"  {speed / C_LIGHT:>8.1f} | " + row)
 
     return table, "\n".join(lines)
+
+
+def pocket_energy_floor(pocket_radius, outer_radius):
+    """
+    Smallest net E_tot of any Van Den Broeck transition region with proper
+    pocket radius P and outer radius b, over every profile of B and every
+    inner radius a [J].
+
+    At fixed a the Dirichlet bound of `BroeckMetric.pocket_energy_bound`
+    reads, with (1 + alpha) a = P,
+
+        (2 c^4 / G) (sqrt(P) - sqrt(a))^2 b / (b - a),
+
+    and its minimum over 0 < a < b sits at a* = b^2 / P, where it equals
+
+        E_floor = (2 c^4 / G) (P - b).
+
+    The floor grows with how much larger the pocket is inside than
+    outside, P - b, the same excess that forces a throat and a violation
+    of the null energy condition. For P <= b there is no floor.
+
+    Returns (E_floor [J], a* [m]), or (0.0, None) when P <= b.
+    """
+
+    if pocket_radius <= outer_radius:
+        return 0.0, None
+    floor = 2.0 * C_LIGHT ** 4 / G * (pocket_radius - outer_radius)
+    return floor, outer_radius ** 2 / pocket_radius
 
 
 @dataclass

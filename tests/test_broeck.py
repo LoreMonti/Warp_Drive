@@ -18,6 +18,7 @@ from warpdrive import (
     BroeckMetric,
     format_profile,
     neck_scaling,
+    pocket_energy_floor,
     profile_mission,
 )
 from warpdrive.constants import C_LIGHT, G, L_PLANCK
@@ -343,3 +344,105 @@ def test_paper_pocket_violates_the_null_energy_at_its_throat(paper):
 
     assert areal == pytest.approx(1.463e-15, rel=1e-3)
     assert float(paper.pocket_null_energy(radius)) < 0.0
+
+
+
+# --- A lower bound on E_tot ---
+def _dirichlet(psi_value, psi_slope, inner, outer, n=400000):
+    """(2 c^4/G) int psi'^2 r^2 dr by the midpoint rule, for callables."""
+
+    step = (outer - inner) / n
+    r = inner + (np.arange(n) + 0.5) * step
+    return 2.0 * C_LIGHT ** 4 / G * np.sum(psi_slope(r) ** 2 * r ** 2) * step
+
+
+@pytest.mark.parametrize("alpha, order", [(2.0, 3), (10.0, 10), (10.0, 80),
+                                          (10.0, 300), (1.0e3, 80)])
+def test_every_profile_lies_above_the_dirichlet_bound(alpha, order):
+    pocket = BroeckMetric(speed=C_LIGHT, alpha=alpha, order=order)
+    assert pocket.transition_energy_budget().net > pocket.pocket_energy_bound()
+
+
+def test_paper_profile_is_six_times_the_bound(paper):
+    ratio = (paper.transition_energy_budget().net
+             / paper.pocket_energy_bound())
+    assert ratio == pytest.approx(6.47, rel=0.01)
+
+
+def test_smooth_profiles_approach_the_harmonic_bound():
+    """
+    The harmonic psi = C1 + C2/r, rounded off at both edges over a width
+    delta by cubic Hermite pieces with zero slope, is a smooth admissible
+    profile. Its E_tot lies above the bound and tends to it linearly as
+    delta -> 0: 3.3 % at delta = 1 m, 3.3e-4 at 1 cm.
+    """
+
+    a, b, alpha = 10.0, 20.0, 10.0
+    top = math.sqrt(1.0 + alpha)
+    c2 = (top - 1.0) / (1.0 / a - 1.0 / b)
+    c1 = 1.0 - c2 / b
+    harmonic = lambda r: c1 + c2 / r
+    harmonic_slope = lambda r: -c2 / r ** 2
+    bound = BroeckMetric(speed=C_LIGHT, inner_radius=a, thickness=b - a,
+                         alpha=alpha).pocket_energy_bound()
+
+    def rounded_slope(delta):
+        def hermite_slope(r, r0, r1, v0, v1, s0, s1):
+            h = r1 - r0
+            t = (r - r0) / h
+            dh00 = 6 * t ** 2 - 6 * t
+            dh10 = 3 * t ** 2 - 4 * t + 1
+            dh01 = -6 * t ** 2 + 6 * t
+            dh11 = 3 * t ** 2 - 2 * t
+            return (dh00 * v0 + dh10 * h * s0 + dh01 * v1 + dh11 * h * s1) / h
+
+        def slope(r):
+            left = r < a + delta
+            right = r > b - delta
+            out = harmonic_slope(r)
+            out = np.where(left, hermite_slope(
+                r, a, a + delta, top, harmonic(a + delta), 0.0,
+                harmonic_slope(a + delta)), out)
+            out = np.where(right, hermite_slope(
+                r, b - delta, b, harmonic(b - delta), 1.0,
+                harmonic_slope(b - delta), 0.0), out)
+            return out
+        return slope
+
+    energies = [_dirichlet(None, rounded_slope(d), a, b)
+                for d in (1.0, 0.1, 0.01)]
+
+    excess = [e / bound - 1.0 for e in energies]
+    assert all(x > 0.0 for x in excess)
+    # the excess falls linearly with the width of the rounding
+    assert excess[0] / excess[1] == pytest.approx(10.0, rel=0.05)
+    assert excess[1] / excess[2] == pytest.approx(10.0, rel=0.05)
+
+
+def test_floor_is_the_minimum_of_the_bound_over_the_inner_radius():
+    """
+    At fixed pocket radius P and outer radius b the bound over the inner
+    radius a is smallest at a* = b^2/P, where it equals (2c^4/G)(P - b).
+    """
+
+    P, b = 110.0, 20.0
+    floor, best = pocket_energy_floor(P, b)
+    assert floor == pytest.approx(2.0 * C_LIGHT ** 4 / G * (P - b))
+    assert best == pytest.approx(b ** 2 / P)
+
+    for a in (1.0, best, 6.0, 12.0, 18.0):
+        pocket = BroeckMetric(speed=C_LIGHT, inner_radius=a, thickness=b - a,
+                              alpha=P / a - 1.0, radius=100.0)
+        assert pocket.pocket_energy_bound() >= floor * (1.0 - 1e-12)
+    optimal = BroeckMetric(speed=C_LIGHT, inner_radius=best,
+                           thickness=b - best, alpha=P / best - 1.0)
+    assert optimal.pocket_energy_bound() == pytest.approx(floor, rel=1e-12)
+
+
+def test_floor_numbers_and_no_floor_without_excess(paper):
+    floor, _ = pocket_energy_floor(paper.pocket_proper_radius(),
+                                   paper.inner_radius + paper.thickness)
+    assert floor / C_LIGHT ** 2 == pytest.approx(2.693e29, rel=1e-3)
+    assert paper.transition_energy_budget().net > floor
+
+    assert pocket_energy_floor(15.0, 20.0) == (0.0, None)
