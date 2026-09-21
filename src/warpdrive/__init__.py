@@ -16,11 +16,15 @@ from .diagnostics import (
 )
 from .geodesics import (
     RayBundle,
+    RayField,
     SkyMap,
     horizon_surface_gravity,
     sky_map,
+    throat_radius,
     trace_rays,
+    trace_rays_3d,
     unlensed_brightness,
+    visible_cone,
 )
 from .metrics import AlcubierreMetric, BroeckMetric, EnergyBudget, WarpMetric
 from .shapes import (
@@ -55,6 +59,10 @@ __all__ = [
     "SkyMap",
     "sky_map",
     "unlensed_brightness",
+    "RayField",
+    "trace_rays_3d",
+    "throat_radius",
+    "visible_cone",
     "make_tracer_grid",
     "tanh_top_hat",
     "tanh_top_hat_derivative",

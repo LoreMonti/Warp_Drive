@@ -40,6 +40,24 @@
 # (1/4pi) \int R^4 mu dOmega_source: the distortion of the sky enters,
 # and there is no closed form for it.
 #
+# Away from the centre the sky is no longer axisymmetric and rays are
+# traced in three dimensions. Inside the shift wall, where f = 1, the
+# metric is spatially conformally flat, gamma_ij = B(r)^2 delta_ij, so for
+# light B acts as a spherically symmetric refractive index and Bouguer's
+# invariant holds along every ray,
+#
+#     B(r) r sin(psi) = L,
+#
+# psi being the angle to the radial direction. B r is the areal radius,
+# the circumference of a sphere over 2 pi, and its minimum beyond the
+# observer is the throat of the pocket: a ray leaves the pocket only if
+# L is below the throat radius. From a proper distance l0 from the centre
+# the outside is seen only within two cones about the radial line,
+#
+#     sin(psi_c) = R_throat / l0,
+#
+# and every other line of sight stays inside the pocket.
+#
 # Author: Lorenzo Monti
 # ==========================================================
 
@@ -55,8 +73,8 @@ from .constants import C_LIGHT
 from .integrators import STOPPED, integrate_adaptive
 from .metrics.base import MIN_RELATIVE_WIDTH, WALL_HALF_WIDTH
 
-#: Ray outcomes.
-ESCAPED, HORIZON, UNFINISHED = 0, 1, 2
+#: Ray outcomes. TRAPPED rays never leave the pocket.
+ESCAPED, HORIZON, UNFINISHED, TRAPPED = 0, 1, 2, 3
 
 
 @dataclass
@@ -376,3 +394,197 @@ def unlensed_brightness(speed_ratio):
     if u == 0.0:
         return 1.0
     return ((1.0 + u) ** 5 - max(0.0, 1.0 - u) ** 5) / (10.0 * u)
+
+
+
+# --- Observers away from the centre ---
+def _static_radius(metric):
+    """Radius inside which f = 1 to within the wall's e^-60 tail."""
+
+    return metric.radius - WALL_HALF_WIDTH / metric.sigma
+
+
+def throat_radius(metric, observer_radius=0.0, n_points=400001):
+    """
+    Smallest areal radius B(r) r between the observer and the shift wall
+    [m]: the throat a ray has to pass through to leave the pocket.
+
+    For Alcubierre, B = 1, it is the observer's own radius and nothing is
+    trapped. The Bouguer criterion built on it assumes B r increases from
+    the centre out to the observer, true anywhere inside a pocket where B
+    is constant.
+    """
+
+    r = np.linspace(observer_radius, _static_radius(metric), n_points)
+    areal = np.asarray(metric.conformal_factor(r, 0.0, 0.0), dtype=float) * r
+    return float(areal.min())
+
+
+def visible_cone(metric, observer_radius):
+    """
+    Half-angle, about the radial line, of the two cones through which an
+    observer at coordinate radius r0 sees out of the pocket [rad]:
+    sin(psi_c) = R_throat / (B(r0) r0), pi/2 when the whole sky is open.
+    """
+
+    proper = float(metric.conformal_factor(observer_radius, 0.0, 0.0)) \
+        * observer_radius
+    if proper <= 0.0:
+        return np.pi / 2.0
+    ratio = throat_radius(metric, observer_radius) / proper
+    return float(np.arcsin(ratio)) if ratio < 1.0 else np.pi / 2.0
+
+
+@dataclass
+class RayField:
+    """Rays traced backwards from an arbitrary point inside the bubble."""
+
+    #: Observer position in the rest frame of the bubble [m].
+    observer: np.ndarray
+
+    #: Unit lines of sight, shape (3, n); B is conformal, so directions in
+    #: the observer's orthonormal frame equal coordinate directions.
+    look: np.ndarray
+
+    #: ESCAPED, HORIZON, TRAPPED or UNFINISHED for each ray.
+    status: np.ndarray
+
+    #: Far-field direction of propagation, shape (3, n); NaN unless
+    #: escaped. The source lies at minus this direction.
+    far_direction: np.ndarray
+
+    #: E_observer / E_far; 0 at the horizon, NaN otherwise.
+    frequency_ratio: np.ndarray
+
+    #: Bouguer invariant L = B r sin(psi) of each ray [m].
+    bouguer: np.ndarray
+
+    #: Final position of each ray [m], shape (3, n).
+    end_position: np.ndarray
+
+    #: |H - 1| relative to |p|/B, as for RayBundle.
+    hamiltonian_drift: np.ndarray
+
+    @property
+    def escaped(self):
+        return self.status == ESCAPED
+
+
+def _hamiltonian_3d(metric, state):
+    x, p = state[:3], state[3:]
+    r = np.linalg.norm(x, axis=0)
+    conformal = np.asarray(metric.conformal_factor(r, 0.0, 0.0), dtype=float)
+    drag = (metric.shift(r, 0.0, 0.0) - metric.speed) / C_LIGHT
+    return np.linalg.norm(p, axis=0) / conformal + drag * p[0]
+
+
+def ray_rhs_3d(metric):
+    """Hamilton's equations in three dimensions, state (x, y, z, p)."""
+
+    def rhs(w, state, members):
+        x, p = state[:3], state[3:]
+        r = np.linalg.norm(x, axis=0)
+        safe = np.where(r > 0.0, r, 1.0)
+        size = np.linalg.norm(p, axis=0)
+
+        conformal = np.asarray(metric.conformal_factor(r, 0.0, 0.0),
+                               dtype=float)
+        drag = (metric.shift(r, 0.0, 0.0) - metric.speed) / C_LIGHT
+        drag_slope = metric.shift_radial_derivative(r) / C_LIGHT / safe
+        conformal_slope = metric.conformal_radial_derivative(r) / safe
+
+        velocity = p / (conformal * size)
+        velocity[0] += drag
+        common = -size * conformal_slope / conformal ** 2 + p[0] * drag_slope
+        return np.concatenate([velocity, -common * x])
+
+    return rhs
+
+
+def trace_rays_3d(metric, observer, look, rtol=1.0e-10, atol=1.0e-12,
+                  min_ratio=1.0e-12, max_steps=200000, classify_trapped=True):
+    """
+    Trace backward null rays from `observer` along the unit lines of
+    sight `look`, shape (3, n), in the rest frame of the bubble.
+
+    The observer must sit inside the shift wall, where f = 1 and the
+    observers at rest in the bubble are Eulerian. There the Bouguer
+    invariant of each ray is known from its initial state, L = |x x p|
+    with H = 1, and with `classify_trapped` a ray with L above the throat
+    radius is marked TRAPPED without being integrated: it would bounce
+    inside the pocket until the step budget ran out. The other rays are
+    integrated and classified as in `trace_rays`.
+
+    Returns a RayField.
+    """
+
+    observer = np.asarray(observer, dtype=float)
+    look = np.asarray(look, dtype=float)
+    look = look / np.linalg.norm(look, axis=0)
+    n = look.shape[1]
+
+    r0 = float(np.linalg.norm(observer))
+    if r0 >= _static_radius(metric):
+        raise ValueError("the observer must sit inside the shift wall")
+    half = WALL_HALF_WIDTH / metric.sigma
+    escape = _escape_radius(metric)
+    if half < MIN_RELATIVE_WIDTH * escape:
+        raise ValueError(
+            f"wall of thickness {1.0 / metric.sigma:.3e} m is too thin to "
+            f"trace rays through around a radius of {metric.radius:.3e} m"
+        )
+
+    conformal0 = float(metric.conformal_factor(r0, 0.0, 0.0))
+    state0 = np.concatenate([np.repeat(observer[:, None], n, axis=1),
+                             -conformal0 * look])
+    bouguer = np.linalg.norm(np.cross(state0[:3], state0[3:], axis=0),
+                             axis=0)
+
+    status = np.full(n, UNFINISHED)
+    state = state0.copy()
+    run = np.ones(n, dtype=bool)
+    if classify_trapped:
+        trapped = bouguer > throat_radius(metric, r0) * (1.0 + 1.0e-12)
+        status[trapped] = TRAPPED
+        run = ~trapped
+
+    if run.any():
+        def stop(w, s, members):
+            far = np.linalg.norm(s[:3], axis=0) > escape
+            lost = np.linalg.norm(s[3:], axis=0) * min_ratio > 1.0
+            return far | lost
+
+        max_step = 0.5 / (metric.sigma * (1.0 + metric.speed / C_LIGHT))
+        _, final, integration = integrate_adaptive(
+            ray_rhs_3d(metric), state0[:, run], -max_steps * max_step,
+            rtol=rtol, atol=atol, first_step=0.01 * max_step,
+            max_step=max_step, max_steps=max_steps, stop=stop)
+
+        far = np.linalg.norm(final[:3], axis=0) > escape
+        sub = np.full(far.size, UNFINISHED)
+        sub[(integration == STOPPED) & far] = ESCAPED
+        sub[(integration == STOPPED) & ~far] = HORIZON
+        status[run] = sub
+        state[:, run] = final
+
+    size = np.linalg.norm(state[3:], axis=0)
+    escaped = status == ESCAPED
+    direction = np.where(escaped, state[3:] / size, np.nan)
+    ratio = np.where(escaped, 1.0 / size, np.nan)
+    ratio[status == HORIZON] = 0.0
+    conformal = np.asarray(
+        metric.conformal_factor(np.linalg.norm(state[:3], axis=0), 0.0, 0.0),
+        dtype=float)
+    drift = np.abs(_hamiltonian_3d(metric, state) - 1.0) / np.maximum(
+        1.0, size / conformal)
+
+    return RayField(
+        observer=observer,
+        look=look,
+        status=status,
+        far_direction=direction,
+        frequency_ratio=ratio,
+        bouguer=bouguer,
+        end_position=state[:3].copy(),
+        hamiltonian_drift=np.where(status == TRAPPED, np.nan, drift),
+    )
