@@ -8,7 +8,7 @@ the test suite; unchecked ones are planned.
 | 1 | Van Den Broeck's two-scale bubble | done |
 | 1b | Overlapping regions of $B$ and $f$ | to do |
 | 2 | Null-geodesic ray tracing, the view from the bridge | done |
-| 3 | Energy floor of the pocket | to do |
+| 3 | The pocket: throat geometry, energy floor, the 1999 checks | to do |
 | 4 | Hawking radiation through the throat | research |
 | 5 | An acoustic Van Den Broeck bubble | research |
 | – | Minor items | to do |
@@ -257,53 +257,91 @@ Implementation notes:
   the cone. With the paper's parameters the throat is $1.46 \times 10^{-15}$ m
   and the window a metre from the centre is $10^{-15}$ rad across.
 
-## 3. Energy floor of the pocket
+## 3. The pocket: throat geometry, energy floor, the 1999 checks
+
+What the first round of reading showed, and how it reshaped this section:
+
+- the vanishing ADM energy of the pocket is **not new**: Barzegar, Buchert and
+  Vigneron (2026, Theorem IV.19) prove it for warp drives with flat slices,
+  and for Van Den Broeck it follows from the definition, since the spatial
+  metric is flat outside a compact region;
+- the Eulerian energy integrated over a slice, $E_\mathrm{tot}$, the quantity
+  Van Den Broeck and Pfenning and Ford use, is called **ambiguous** in the same
+  paper (Error 9): it depends on the foliation, is not conserved and is not the
+  mass of the bubble. A lower bound on it is only meaningful as a statement
+  about that quantity;
+- no lower bound of Dirichlet type was found in Lobo and Visser (2004),
+  Schuster, Santiago and Visser (2023) or Barzegar et al. (2026); Schuster et
+  al. list conformally flat slices, the class Van Den Broeck belongs to, as
+  future work;
+- the throat of the pocket is a surface of minimal area, like the throat of a
+  wormhole. Hochberg and Visser showed that such a flaring-out throat forces a
+  violation of the null energy condition. That statement is independent of the
+  observer and of the foliation, and does not involve $v_s$; no one was found
+  to have applied it to Van Den Broeck's pocket.
 
 Literature:
 
+- [x] Barzegar, Buchert and Vigneron (2026): ADM energy, positive-energy
+      theorem, and the ambiguity of $E_\mathrm{tot}$
+- [x] Lobo and Visser (2004): no bound on the energy of the pocket
+- [x] Schuster, Santiago and Visser (2023): no treatment of Van Den Broeck; the
+      conformally flat class is left as future work
 - [ ] Gauthier, Gravel and Melanson, *New lower bounds for warp drive energy*,
-      Int. J. Mod. Phys. A **17**, 2761 (2002): full text, to see whether they
-      already bound the energy of the pocket
-- [ ] Loup's Natário–Broeck papers, the reviews by Lobo and Visser, and
-      *Warp drive basics* (2021), for any lower bound on the energy of $B$
+      Int. J. Mod. Phys. A **17**, 2761 (2002): a single page, not freely
+      available; needs library access
+- [ ] Hochberg and Visser on the geometry of static and dynamic wormhole
+      throats (1997, 1998), and Morris and Thorne (1988): the exact hypotheses
+      of the flare-out theorem, and whether a throat of trivial topology, as in
+      a Van Den Broeck pocket, satisfies them
+- [ ] Loup's Natário–Broeck papers and *Warp drive basics* (2021), for any
+      statement on the throat or on a lower energy bound
 - [ ] Initial-data literature on conformally flat, time-symmetric slices
-      (Brill, Brill–Lindquist, positive-mass arguments): whether the Dirichlet
-      bound and the vanishing $\psi^5$ integral below are known in that form
-- [ ] Schuster, Santiago and Visser, *ADM mass in warp drive spacetimes* (2023),
-      and Barzegar, Buchert and Vigneron (2026), on which notion of energy is
-      meaningful for a warp bubble
+      (Brill, Brill–Lindquist): whether the Dirichlet bound below is known in
+      that setting
 
-Theory:
+3a — The throat as a minimal surface:
 
-- [ ] Show from the derivation that the net energy of the pocket is a
+- [ ] Show that inside the shift wall, in the frame of the bubble, the metric
+      is ultrastatic, $`-c^2 dt^2 + B^2\delta_{ij}\,dx^i dx^j`$, so the slices are
+      time-symmetric there and the throat, where the areal radius $`B\,r`$ is
+      smallest, is a minimal surface
+- [ ] Derive the radial pressure from the Einstein tensor in `symbolic.py`,
+      and the null contraction $\varepsilon + p_r$ for radial light rays
+- [ ] Verify that $\varepsilon + p_r < 0$ at the throat for every profile, and
+      at every $v_s$, as the flare-out theorem requires; locate where the
+      violation sits
+- [ ] Tests: the sign at the throat for several profiles, the null
+      contraction against the derivation, and flat space
+
+3b — A lower bound on $E_\mathrm{tot}$:
+
+- [ ] Show from the derivation that the net $E_\mathrm{tot}$ of the pocket is a
       Dirichlet integral of $\psi = \sqrt{B}$
 - [ ] Prove the lower bound below for every profile, with equality for the
-      harmonic $\psi$
-- [ ] Derive the universal floor at fixed proper pocket radius $P$, for any neck
-- [ ] Prove that the $\psi^5$-weighted energy vanishes, so the pocket has zero
-      ADM mass, and discuss what that means for the Eulerian energy it is
-      bounded by
+      harmonic $\psi$, and the floor at fixed proper pocket radius $P$
+- [ ] `pocket_energy_bound(metric)`, and a test that every profile tried lies
+      above it
+- [ ] Minimum-$E_\mathrm{tot}$ profile under a lower bound on the curvature
+      radius, the constraint Van Den Broeck used to choose $n = 80$
+- [ ] State explicitly, following Barzegar et al., that this bounds the
+      quantity used by Van Den Broeck and Pfenning and Ford, not a mass
 
-Code and tests:
+3c — The checks of the 1999 paper:
 
-- [ ] `pocket_energy_bound(metric)`, and a test that every profile tried
-      (polynomials of several orders, tanh steps) lies above it
-- [ ] Test of the vanishing $\psi^5$ integral, to the quadrature's precision
-- [ ] Minimum-energy profile under a lower bound on the curvature radius, the
-      constraint Van Den Broeck used to choose $n = 80$
 - [ ] Re-derive the peak density and the curvature radius of eqs. (14) and (20)
-      of the 1999 paper, and redo its quantum-inequality check with the
-      corrected numbers
-- [ ] The same quantum-inequality check for observers crossing the transition
-      region at high speed, not only the Eulerian ones
+      of the 1999 paper, which do not match its own profile
+- [ ] Redo its quantum-inequality check with the corrected numbers
+- [ ] The same check for observers crossing the transition region at high
+      speed, not only the Eulerian ones
 
 Write-up:
 
-- [ ] Note in LaTeX, compiled with tectonic, with the theorem and its proof
+- [ ] Note in LaTeX, compiled with tectonic, with 3a, 3b and 3c
 - [ ] README section and figure
 
 With $\psi = \sqrt{B}$, $a = \tilde R$ and $b = \tilde R + \tilde\Delta$, the
-net energy of the transition region and its lower bound are
+net $E_\mathrm{tot}$ of the transition region and its lower bound are
 
 ```math
 E_B = \frac{2c^4}{G}\int_a^b \psi'^2\,r^2\,dr \;\ge\; \frac{2c^4}{G}\,\left(\sqrt{B_\mathrm{max}} - 1\right)^2\frac{ab}{b - a}
@@ -317,8 +355,8 @@ M_B \gtrsim \frac{2c^2 P}{G} \approx 0.14\,M_\odot \times \frac{P}{100\ \mathrm{
 ```
 
 A first numerical check: the profile of the 1999 paper lies 6.5 times above
-the bound, the polynomial of order 10 1.46 times; no profile tried falls below
-it; and the $\psi^5$-weighted energy vanishes to $10^{-10}$ of its scale.
+the bound, the polynomial of order 10 1.46 times, and no profile tried falls
+below it.
 
 ## 4. Hawking radiation through the throat
 
