@@ -334,16 +334,25 @@ region round the maximum of $A$.
 
 3b — A lower bound on $E_\mathrm{tot}$:
 
-- [ ] Show from the derivation that the net $E_\mathrm{tot}$ of the pocket is a
+- [x] Show from the derivation that the net $E_\mathrm{tot}$ of the pocket is a
       Dirichlet integral of $\psi = \sqrt{B}$
-- [ ] Prove the lower bound below for every profile, with equality for the
+- [x] Prove the lower bound below for every profile, with equality for the
       harmonic $\psi$, and the floor at fixed proper pocket radius $P$
-- [ ] `pocket_energy_bound(metric)`, and a test that every profile tried lies
+- [x] `pocket_energy_bound(metric)`, and a test that every profile tried lies
       above it
 - [ ] Minimum-$E_\mathrm{tot}$ profile under a lower bound on the curvature
-      radius, the constraint Van Den Broeck used to choose $n = 80$
-- [ ] State explicitly, following Barzegar et al., that this bounds the
+      radius, the constraint Van Den Broeck used to choose $n = 80$: after
+      3c, which computes that curvature radius
+- [x] State explicitly, following Barzegar et al., that this bounds the
       quantity used by Van Den Broeck and Pfenning and Ford, not a mass
+
+What 3b found: the static density is $`-(c^4/2\pi G)\,\nabla^2\psi/\psi^5`$, so
+the net $E_\mathrm{tot}$ is a Dirichlet integral bounded by its harmonic value,
+and minimising over the inner radius gives the floor
+$E_\mathrm{tot} \ge (2c^4/G)(P - b)$ at $a^* = b^2/P$: 0.122 and 0.135 solar
+masses for the default and the 1999 pockets, the latter 13 times above it.
+Smooth roundings of the harmonic profile approach the bound linearly in the
+rounding width (`plot_energy_floor`).
 
 3c — The checks of the 1999 paper:
 

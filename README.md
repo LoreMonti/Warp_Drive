@@ -325,6 +325,33 @@ and the two agree to $10^{-9}$.
 
 ![The areal radius and the null energy across the pocket](images/readme/broeck_throat.png)
 
+**A floor on the energy of the pocket.** Writing $\psi = \sqrt{B}$, the static
+density is a Laplacian, $`\varepsilon = -(c^4/2\pi G)\,\nabla^2\psi/\psi^5`$, and
+integrated over the proper volume $`\psi^6\,dV`$ by parts the net energy of the
+transition region becomes a Dirichlet integral. Among all profiles with the same
+end values it is smallest for the harmonic $\psi = C_1 + C_2/r$, and minimising
+also over the inner radius at fixed proper pocket radius $P$ and outer radius
+$b$ gives a floor for every profile:
+
+```math
+E_\mathrm{tot} = \frac{2c^4}{G}\int_a^b \psi'^2\,r^2\,dr \;\ge\; \frac{2c^4}{G}\,(P - b)
+```
+
+reached, as an infimum, at $a = b^2/P$ by a harmonic profile whose kinks are a
+positive shell on the pocket and a negative one on the neck. The floor grows
+with how much larger the pocket is inside than outside, the same excess that
+forces the throat: 0.122 solar masses for the default pocket and 0.135 for the
+1999 configuration, whose profile lies 13 times above it. A polynomial of order
+10 with a well-chosen inner radius comes within a factor of 1.5.
+
+This bounds $E_\mathrm{tot}$, the Eulerian energy integrated over a slice, which
+is the quantity Van Den Broeck and Pfenning and Ford use and which Barzegar,
+Buchert and Vigneron (2026) show to depend on the foliation and not to be a
+mass. It says how far any profile could improve on the 1999 number; the
+observer-independent statement is the null energy violation at the throat.
+
+![Net energy of the transition region against its lower bounds](images/readme/broeck_energy_floor.png)
+
 With the same shift wall, the pocket adds a thin shell carrying both signs of
 energy and holds more space than its coordinate size: at the default parameters
 10 m of coordinate radius hold 110 m of proper radius.

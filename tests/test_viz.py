@@ -22,6 +22,7 @@ from warpdrive import (                                     # noqa: E402
 from warpdrive.constants import C_LIGHT                     # noqa: E402
 from warpdrive.viz import (                                 # noqa: E402
     plot_all,
+    plot_energy_floor,
     plot_metric_comparison,
     plot_neck_scaling,
     plot_pocket_throat,
@@ -156,3 +157,8 @@ def test_throat_figure_renders(tmp_path):
     path = plot_pocket_throat(BroeckMetric(speed=C_LIGHT),
                               str(tmp_path / "throat.png"), n_points=2001)
     assert (tmp_path / "throat.png").stat().st_size > 10_000
+
+
+def test_energy_floor_figure_renders(tmp_path):
+    plot_energy_floor(str(tmp_path / "floor.png"), n_inner=6)
+    assert (tmp_path / "floor.png").stat().st_size > 10_000

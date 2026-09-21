@@ -38,6 +38,7 @@ from warpdrive import (                                       # noqa: E402
 from warpdrive.constants import LY, M_SUN                     # noqa: E402
 from warpdrive.viz import (                                   # noqa: E402
     plot_all,
+    plot_energy_floor,
     plot_metric_comparison,
     plot_neck_scaling,
     plot_pocket_throat,
@@ -123,6 +124,8 @@ def main(argv=None):
                 os.path.join(args.figures_dir, "06_neck_scaling.png")),
             plot_pocket_throat(
                 broeck, os.path.join(args.figures_dir, "07_throat.png")),
+            plot_energy_floor(
+                os.path.join(args.figures_dir, "08_energy_floor.png")),
         ]
         for path in paths:
             print("   ", os.path.relpath(path))

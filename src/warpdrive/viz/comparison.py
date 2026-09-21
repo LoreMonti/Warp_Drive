@@ -6,6 +6,7 @@
 
 
 # --- Third-party imports ---
+import matplotlib.pyplot as plt
 import numpy as np
 
 # --- Local imports ---
@@ -215,6 +216,82 @@ def plot_pocket_throat(broeck, path, n_points=40001):
                      "independent of the speed of the bubble")
     dark_axes(bottom)
     _legend(bottom, loc="lower left")
+
+    fig.tight_layout()
+    return save(fig, path)
+
+
+def plot_energy_floor(path, pocket_radius=100.0, outer_radius=20.0,
+                      orders=(10, 80), n_inner=40):
+    """
+    The net E_tot of Van Den Broeck transition regions against the lower
+    bounds of section 3b, in solar masses.
+
+    Left: at fixed proper pocket radius P and outer radius b, polynomial
+    profiles of several orders against the inner radius a, above the
+    Dirichlet bound for each a, whose minimum over a is the floor
+    (2 c^4/G)(P - b), reached at a* = b^2/P. Right: the floor against the
+    excess P - b, with the default and the 1999 configurations and the
+    energy of their actual profiles.
+    """
+
+    # local imports keep viz free of a hard dependency on diagnostics
+    from ..diagnostics import pocket_energy_floor
+    from ..metrics.broeck import BroeckMetric
+
+    to_sun = 1.0 / (M_SUN * C_LIGHT ** 2)
+    P, b = pocket_radius, outer_radius
+    floor, best = pocket_energy_floor(P, b)
+
+    inner = np.geomspace(0.02 * b, 0.9 * b, n_inner)
+    bound = [BroeckMetric(speed=C_LIGHT, inner_radius=a, thickness=b - a,
+                          alpha=P / a - 1.0).pocket_energy_bound()
+             for a in inner]
+
+    fig, (left, right) = dark_figure(1, 2, figsize=(12.5, 5.0))
+    colours = plt.get_cmap("plasma")(np.linspace(0.3, 0.8, len(orders)))
+    for order, colour in zip(orders, colours):
+        actual = [BroeckMetric(speed=C_LIGHT, inner_radius=a,
+                               thickness=b - a, alpha=P / a - 1.0,
+                               order=order).transition_energy_budget().net
+                  for a in inner]
+        left.loglog(inner, np.array(actual) * to_sun, color=colour, lw=1.8,
+                    label=f"polynomial profile, n = {order}")
+    left.loglog(inner, np.array(bound) * to_sun, color=ACCENT, lw=2.2,
+                label="Dirichlet bound at each a")
+    left.axhline(floor * to_sun, color=FG, lw=1.0, ls="--",
+                 label=r"floor $2c^4(P - b)/G$")
+    left.plot(best, floor * to_sun, "o", color=FG, ms=6)
+    left.annotate(r"$a^* = b^2/P$", (best, floor * to_sun),
+                  (best * 0.3, floor * to_sun * 1.6), color=FG, fontsize=9,
+                  arrowprops=dict(color=FG, arrowstyle="->", lw=0.8))
+    left.set_xlabel(r"inner radius of the transition  $a$  [m]")
+    left.set_ylabel(r"net $E_\mathrm{tot}$  [$M_\odot$]")
+    left.set_title(f"P = {P:g} m, b = {b:g} m: no profile goes below "
+                   "the bound")
+    dark_axes(left)
+    _legend(left, loc="upper left")
+
+    excess = np.geomspace(1e-2, 1e4, 200)
+    right.loglog(excess, 2.0 * C_LIGHT ** 4 / G * excess * to_sun,
+                 color=FG, lw=1.2, ls="--", label="floor")
+    for metric, name, colour in (
+            (BroeckMetric(speed=C_LIGHT), "default", TRACER),
+            (BroeckMetric.from_paper(), "1999 paper", ACCENT)):
+        outer = metric.inner_radius + metric.thickness
+        gap = metric.pocket_proper_radius() - outer
+        actual = metric.transition_energy_budget().net * to_sun
+        right.plot(gap, actual, "o", color=colour, ms=7,
+                   label=f"{name}: actual profile")
+        right.plot(gap, pocket_energy_floor(
+            metric.pocket_proper_radius(), outer)[0] * to_sun, "x",
+            color=colour, ms=8)
+    right.set_xlabel(r"excess of the pocket over its outside  $P - b$  [m]")
+    right.set_ylabel(r"net $E_\mathrm{tot}$  [$M_\odot$]")
+    right.set_title("The floor grows with how much larger the pocket is "
+                    "inside")
+    dark_axes(right)
+    _legend(right, loc="upper left")
 
     fig.tight_layout()
     return save(fig, path)
