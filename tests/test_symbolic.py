@@ -12,6 +12,7 @@
 
 import math
 
+import numpy as np
 import pytest
 import sympy as sp
 
@@ -29,7 +30,9 @@ from warpdrive.symbolic import (
     alcubierre_reference,
     check_inverse,
     derive,
+    derive_pocket,
     numeric_lambda,
+    radial_null_contraction,
 )
 
 
@@ -238,3 +241,83 @@ def test_broeck_expansion_matches_the_derivation(broeck_numeric, broeck):
                                                               SPEED_RATIO))
         implemented = float(broeck.expansion(x, y, z))
         assert derived == pytest.approx(implemented, rel=1e-10, abs=1e-12)
+
+
+
+# --- The pocket as a static throat ---
+@pytest.fixture(scope="module")
+def pocket():
+    return derive_pocket()
+
+
+def _tanh_top_hat_second(r, radius, sigma):
+    """d^2 f / dr^2 of the tanh top hat, needed only by the bridge below."""
+
+    a, b = sigma * (r + radius), sigma * (r - radius)
+    sech2 = lambda q: 1.0 / np.cosh(q) ** 2
+    return (-sigma ** 2 / math.tanh(sigma * radius)
+            * (sech2(a) * np.tanh(a) - sech2(b) * np.tanh(b)))
+
+
+def test_pocket_energy_density_is_the_static_term(pocket):
+    """The spherical chart must give back the term BroeckMetric uses."""
+
+    r = pocket["coords"][1]
+    B = pocket["conformal"]
+    first, second = sp.diff(B, r), sp.diff(B, r, 2)
+    static = (first ** 2 / B ** 4 - 2 * second / B ** 3
+              - 4 * first / (r * B ** 3))
+
+    assert sp.simplify(pocket["energy_density"] - static) == 0
+
+
+def test_radial_null_contraction_has_the_throat_form(pocket):
+    """eps + p_r = -2 A_ll / A, with A = B r and dl = B dr."""
+
+    assert sp.simplify(pocket["radial_null"] - pocket["throat_form"]) == 0
+
+
+def test_flat_pocket_has_no_stress(pocket):
+    B = pocket["conformal"]
+    for key in ("energy_density", "radial_pressure", "tangential_pressure"):
+        assert sp.simplify(pocket[key].subs(B, sp.Integer(7)).doit()) == 0
+
+
+def test_pocket_null_contraction_matches_the_general_derivation(
+        general, broeck, pocket):
+    """
+    Two charts and two ansatze: the Cartesian derivation with the bubble
+    moving at 10c, contracted on a radial null vector, and the spherical
+    ultrastatic pocket. Inside the shift wall they must agree, which
+    shows the null contraction there does not depend on v_s.
+    """
+
+    m = broeck
+    shape = (lambda q: tanh_top_hat(q, m.radius, m.sigma),
+             lambda q: tanh_top_hat_derivative(q, m.radius, m.sigma),
+             lambda q: _tanh_top_hat_second(q, m.radius, m.sigma))
+    parameters = (m.inner_radius, m.thickness, m.alpha, m.order)
+    conformal = (
+        lambda q: broeck_volume_profile(q, *parameters),
+        lambda q: broeck_volume_profile_derivative(q, *parameters),
+        lambda q: broeck_volume_profile_second_derivative(q, *parameters),
+    )
+    moving = numeric_lambda(general, radial_null_contraction(general),
+                            {"f": shape, "B": conformal})
+
+    r = pocket["coords"][1]
+    B = pocket["conformal"]
+    b0, b1, b2 = sp.symbols("b0 b1 b2")
+    static = sp.lambdify((r, b0, b1, b2), pocket["radial_null"].subs(
+        sp.diff(B, r, 2), b2).subs(sp.diff(B, r), b1).subs(B, b0), "numpy")
+
+    def throat_form(radius):
+        return static(radius, *(fn(radius) for fn in conformal))
+
+    points = [(12.0, 5.0, 0.0), (0.0, 0.0, 11.08), (-9.0, 8.0, 7.0),
+              (3.0, 0.0, 18.5), (1.0, 10.2, -0.5)]
+    for x, y, z in points:
+        radius = math.sqrt(x * x + y * y + z * z)
+        derived = float(moving(0.0, x, y, z, SPEED_RATIO))
+        assert derived == pytest.approx(throat_form(radius), rel=1e-9,
+                                        abs=1e-60)

@@ -26,6 +26,11 @@
 # the contraction conventions. What counts as evidence is that two
 # independent routes agree, which is why both are kept.
 #
+# A second, independent route covers the pocket alone: `derive_pocket`
+# writes the ultrastatic metric inside the shift wall in spherical
+# coordinates and finds that the radial null contraction has the form of
+# a wormhole throat, eps + p_r = -2 A_ll / A with A the areal radius.
+#
 # Not imported by `warpdrive/__init__.py`: nothing at runtime needs it,
 # it is imported explicitly when the derivation is wanted.
 #
@@ -417,3 +422,92 @@ def alcubierre_expansion_reference(result):
     derivative = result["shape_derivative"]
 
     return u * (x - u * w) * derivative / r_s
+
+
+# --- The pocket as a static throat ---
+def derive_pocket():
+    """
+    Stress-energy of the pocket from an independent chart and ansatz.
+
+    Inside the shift wall, in the frame of the bubble, f = 1 and the
+    metric is ultrastatic,
+
+        ds^2 = -dw^2 + B(r)^2 (dr^2 + r^2 dOmega^2),
+
+    written here in spherical coordinates (w, r, theta, phi), so that none
+    of the Cartesian machinery of `derive` is involved. The orthonormal
+    energy density and pressures are returned in units of c^4 / 8 pi G.
+
+    With the proper radial distance dl = B dr and the areal radius
+    A = B r, the null contraction along radial light rays takes the form
+    of a Morris-Thorne throat,
+
+        eps + p_r = -2 (d^2 A / dl^2) / A,
+
+    negative wherever the areal radius is convex in proper distance, in
+    particular at a throat where A is minimal. This is Hochberg and
+    Visser's flare-out condition, which does not depend on topology and
+    holds for any profile of B and any v_s.
+
+    Returns a dict with the chart, B, the metric, the Einstein tensor,
+    eps, p_r, p_t, eps + p_r, the areal radius and the geometric form.
+    """
+
+    w, r, theta, phi = sp.symbols("w r theta phi", positive=True)
+    coords = (w, r, theta, phi)
+    conformal = sp.Function("B")(r)
+
+    g = sp.diag(-1, conformal ** 2, conformal ** 2 * r ** 2,
+                conformal ** 2 * r ** 2 * sp.sin(theta) ** 2)
+    ginv = sp.diag(-1, 1 / conformal ** 2, 1 / (conformal ** 2 * r ** 2),
+                   1 / (conformal ** 2 * r ** 2 * sp.sin(theta) ** 2))
+    einstein, _, _ = einstein_tensor(g, ginv, coords)
+
+    density = reduce_expr(einstein[0, 0])
+    radial = reduce_expr(einstein[1, 1] / conformal ** 2)
+    tangential = reduce_expr(einstein[2, 2] / (conformal ** 2 * r ** 2))
+
+    areal = conformal * r
+    slope = sp.diff(areal, r) / conformal            # dA/dl
+    curvature = sp.diff(slope, r) / conformal        # d^2 A / dl^2
+
+    return {
+        "coords": coords,
+        "conformal": conformal,
+        "metric": g,
+        "einstein": einstein,
+        "energy_density": density,
+        "radial_pressure": radial,
+        "tangential_pressure": tangential,
+        "radial_null": reduce_expr(density + radial),
+        "areal_radius": areal,
+        "areal_slope": slope,
+        "throat_form": reduce_expr(-2 * curvature / areal),
+    }
+
+
+def radial_null_contraction(result):
+    """
+    G_{mn} k^m k^n from the general derivation of `derive`, along the
+    future null direction k = n + e_r / B made of the Eulerian normal and
+    the unit radial vector from the centre of the bubble. In units of
+    c^4 / 8 pi G; inside the shift wall it must equal the `radial_null`
+    of `derive_pocket`.
+    """
+
+    w, x, y, z = result["coords"]
+    u, r_s = result["speed"], result["radius"]
+    shift = u * result["shape"]
+    conformal = result["conformal"]
+    einstein = result["einstein"]
+
+    radial = ((x - u * w) / r_s, y / r_s, z / r_s)
+    k = (sp.S.One, shift + radial[0] / conformal, radial[1] / conformal,
+         radial[2] / conformal)
+
+    total = sp.S.Zero
+    for m in range(4):
+        for nu in range(4):
+            if einstein[m, nu] != 0:
+                total += einstein[m, nu] * k[m] * k[nu]
+    return total
