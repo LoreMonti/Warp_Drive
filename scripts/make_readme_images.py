@@ -42,6 +42,7 @@ from warpdrive.viz import (                                   # noqa: E402
     plot_expansion_scalar,
     plot_metric_comparison,
     plot_neck_scaling,
+    plot_offcentre_sky,
     plot_shell_3d,
     plot_sky,
     plot_sky_mapping,
@@ -102,6 +103,10 @@ def main(argv=None):
                for s in (0.5, 2.0, 10.0)]
     paths.append(plot_sky(bubbles, target("sky_fisheye.png")))
     paths.append(plot_sky_mapping(bubbles, target("sky_mapping.png")))
+
+    # the sky from four points of the default pocket, at 10c
+    paths.append(plot_offcentre_sky(broeck, [0.0, 30.0, 60.0, 90.0],
+                                    target("sky_offcentre.png")))
 
     for path in paths:
         print(os.path.relpath(path))

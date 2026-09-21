@@ -5,6 +5,7 @@
 # Usage:
 #   python scripts/run_sky.py
 #   python scripts/run_sky.py --speeds 0.9 1.5 5
+#   python scripts/run_sky.py --offsets 0 20 50 100
 #   python scripts/run_sky.py --no-figures
 #
 # Author: Lorenzo Monti
@@ -33,11 +34,17 @@ from warpdrive import (                                       # noqa: E402
     BroeckMetric,
     C_LIGHT,
     horizon_surface_gravity,
+    throat_radius,
     trace_rays,
     unlensed_brightness,
+    visible_cone,
 )
 from warpdrive.geodesics import sky_map                       # noqa: E402
-from warpdrive.viz import plot_sky, plot_sky_mapping          # noqa: E402
+from warpdrive.viz import (                                   # noqa: E402
+    plot_offcentre_sky,
+    plot_sky,
+    plot_sky_mapping,
+)
 
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir)
@@ -58,6 +65,11 @@ def parse_args(argv=None):
                         help="bubble radius in metres (default: 100)")
     parser.add_argument("--sigma", type=float, default=1.0,
                         help="inverse wall thickness in 1/m (default: 1)")
+    parser.add_argument("--offsets", type=float, nargs="+",
+                        default=[0.0, 30.0, 60.0, 90.0],
+                        help="proper distances from the centre of the "
+                             "Van Den Broeck pocket for the off-centre "
+                             "views, in metres (default: 0 30 60 90)")
     parser.add_argument("--figures-dir", default=DEFAULT_FIGURES,
                         help="figure directory, not tracked "
                              "(default: ./images/local/sky)")
@@ -116,6 +128,28 @@ def format_sky_table(bubbles):
     return "\n".join(lines) + "\n\n" + "\n".join(light)
 
 
+def format_offcentre_table(broeck, offsets):
+    """The two windows out of the pocket, from each offset."""
+
+    throat = throat_radius(broeck, broeck.inner_radius)
+    centre = float(broeck.conformal_factor(0.0, 0.0, 0.0))
+    lines = [
+        f"  AWAY FROM THE CENTRE   (pocket {broeck.pocket_proper_radius():g} "
+        f"m, throat {throat:.3f} m)",
+        f"  {'offset':>8} | {'window half-angle':>17} | {'sky open':>9}",
+        "  " + "-" * 42,
+    ]
+    for offset in offsets:
+        cone = visible_cone(broeck, offset / centre)
+        open_fraction = 1.0 - math.cos(cone)
+        lines.append(f"  {offset:>6g} m | {math.degrees(cone):>15.2f} ° | "
+                     f"{100.0 * open_fraction:>7.2f} %")
+    lines.append("  window: sin(psi_c) = R_throat / offset, two windows")
+    lines.append("  sky open: fraction of lines of sight that leave the "
+                 "pocket, 1 - cos(psi_c)")
+    return "\n".join(lines)
+
+
 def main(argv=None):
     args = parse_args(argv)
     os.makedirs(args.figures_dir, exist_ok=True)
@@ -140,13 +174,17 @@ def main(argv=None):
                                            "01_fisheye.png")),
             plot_sky_mapping(bubbles, os.path.join(args.figures_dir,
                                                    "02_mapping.png")),
+            plot_offcentre_sky(broeck, args.offsets,
+                               os.path.join(args.figures_dir,
+                                            "03_offcentre.png")),
         ):
             print("   ", os.path.relpath(path))
 
     text = format_sky_table(bubbles) + (
         f"\n\n  Van Den Broeck with the same wall at "
         f"{fastest.speed / C_LIGHT:g}c: largest difference in source angle "
-        f"{difference:.1e} rad\n"
+        f"{difference:.1e} rad\n\n"
+        + format_offcentre_table(broeck, args.offsets) + "\n"
     )
     print("\n" + text)
     report_path = os.path.join(args.reports_dir, "sky.txt")

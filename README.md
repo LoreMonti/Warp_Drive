@@ -387,8 +387,39 @@ from the traced rays and agree to $10^{-6}$.
 For a ship at the centre, Van Den Broeck's pocket changes nothing: $B$ is
 spherically symmetric, so rays leaving the centre cross it radially and only
 slow down, and the blueshift above does not contain $B$. With the same shift
-wall the two skies agree to $10^{-12}$ rad. The pocket would only show for an
-observer away from the centre.
+wall the two skies agree to $10^{-12}$ rad.
+
+**Away from the centre** the pocket takes over. Inside the shift wall the
+spatial metric is $B^2\delta_{ij}$, so for light $B$ acts as a spherically
+symmetric refractive index, and Bouguer's invariant holds along every ray:
+
+```math
+B(r)\,r\,\sin\psi = L
+```
+
+with $\psi$ the angle to the radial direction. $`B\,r`$ is the areal radius, the
+circumference of a sphere over $2\pi$, and its minimum outside the pocket is a
+**throat**: a ray leaves the pocket only if $L$ is below the throat radius.
+From a proper distance $\ell_0$ from the centre the outside is therefore seen
+only through two windows about the radial line, one outwards and one through
+the centre, of half-angle
+
+```math
+\sin\psi_c = \frac{R_\mathrm{throat}}{\ell_0}
+```
+
+and every other line of sight stays inside the pocket. For the default pocket,
+110 m across with an 11.2 m throat, the windows are 21.9° at 30 m from the
+centre and 7.2° at 90 m, and the whole sky is squeezed into them.
+`trace_rays_3d` traces the rays in three dimensions from any point inside the
+bubble; the edge of each window falls on the closed-form cone.
+
+![The sky from four points of the pocket](images/readme/sky_offcentre.png)
+
+For the configuration of the 1999 paper the throat is $1.46 \times 10^{-15}$ m.
+One metre from the centre of the 100 m pocket, the crew would see the entire
+universe through a window of $10^{-15}$ rad, and the inside of the pocket in
+every other direction.
 
 ## Sample output
 

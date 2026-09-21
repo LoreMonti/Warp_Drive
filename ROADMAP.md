@@ -155,7 +155,9 @@ one where the derivation carries the whole weight, and it exercises terms of
 - [x] Rear horizon as a correctness check, with its surface gravity
 - [x] Rendered star field at several $v_s$, for both metrics
       (`viz/sky.py`, `scripts/run_sky.py`)
-- [ ] Observer away from the centre of the pocket, one ray per pixel in 3D
+- [x] Observer away from the centre of the pocket: three-dimensional rays,
+      the Bouguer throat and the two windows (`trace_rays_3d`,
+      `plot_offcentre_sky`)
 - [x] Brightness of the sources: flux $R^4\mu$ for a star, light received
       from an isotropic background, and the effect of lensing on it
 
@@ -214,5 +216,15 @@ Implementation notes:
   angles and inverted it converges at second order, which a test checks;
   differentiated along the uneven source angles it was far less accurate;
 - for a ship at the centre the two metrics show the same sky: $B$ is
-  spherically symmetric and absent from the blueshift. Seeing the pocket needs
-  the off-centre observer above.
+  spherically symmetric and absent from the blueshift;
+- off the centre, $B$ acts on light as a spherically symmetric refractive
+  index, so $`B\,r\sin\psi`$ is conserved and the minimum areal radius $`B\,r`$
+  outside the pocket is a throat: a ray leaves only if its invariant is below
+  it, and the sky is seen through two windows of half-angle
+  $\arcsin(R_\mathrm{throat}/\ell_0)$. The invariant is known from the initial
+  state, so trapped rays are classified without being integrated; a test
+  checks the shortcut against brute-force integration on both sides of the
+  cone;
+- the windows of different offsets hold nearly the same picture, rescaled with
+  the cone. With the paper's parameters the throat is $1.46 \times 10^{-15}$ m
+  and the window a metre from the centre is $10^{-15}$ rad across.
