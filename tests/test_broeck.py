@@ -21,6 +21,7 @@ from warpdrive import (
     profile_mission,
 )
 from warpdrive.constants import C_LIGHT, G, L_PLANCK
+from warpdrive.geodesics import throat_radius
 from warpdrive.shapes import broeck_volume_profile_derivative
 
 
@@ -236,3 +237,109 @@ def test_mission_report_for_the_paper_configuration():
     assert profile.energy.positive > 0.0
     assert "too thin" in report
     assert "pocket" in report
+
+
+# --- The pocket as a static throat ---
+@pytest.mark.parametrize("alpha, order", [(2.0, 80), (10.0, 10), (10.0, 80),
+                                          (1.0e3, 300)])
+def test_null_energy_is_violated_at_the_throat(alpha, order):
+    """
+    A pocket larger inside than outside has a minimal sphere, and the
+    flare-out there forces eps + p_r < 0, whatever the profile.
+    """
+
+    pocket = BroeckMetric(speed=C_LIGHT, alpha=alpha, order=order)
+    assert (1.0 + alpha) * pocket.inner_radius > (pocket.inner_radius
+                                                 + pocket.thickness)
+
+    throat = pocket.throat()
+    assert throat is not None
+    radius, areal = throat
+    assert pocket.inner_radius < radius < (pocket.inner_radius
+                                           + pocket.thickness)
+    assert areal < pocket.inner_radius + pocket.thickness
+    assert float(pocket.pocket_null_energy(radius)) < 0.0
+
+
+def test_throat_matches_the_ray_tracer_throat():
+    """
+    Two searches for the same minimum: throat() refines it with a
+    parabola, throat_radius takes the smallest grid sample, which sits
+    slightly above it.
+    """
+
+    pocket = BroeckMetric(speed=10.0 * C_LIGHT)
+    refined = pocket.throat()[1]
+    sampled = throat_radius(pocket, pocket.inner_radius)
+
+    assert refined <= sampled
+    assert refined == pytest.approx(sampled, rel=1e-8)
+
+
+def test_null_energy_is_the_convexity_of_the_areal_radius():
+    """
+    eps + p_r = -(c^4/8 pi G) (2/A) d^2A/dl^2, checked against a finite
+    difference of A along the proper radial distance l.
+    """
+
+    pocket = BroeckMetric(speed=C_LIGHT)
+    r = np.linspace(pocket.inner_radius + 0.05, pocket.inner_radius
+                    + pocket.thickness - 0.05, 200001)
+    areal = pocket.areal_radius(r)
+    proper = np.concatenate([[0.0], np.cumsum(
+        0.5 * (pocket.conformal_profile(r[1:])
+               + pocket.conformal_profile(r[:-1])) * np.diff(r))])
+    convexity = np.gradient(np.gradient(areal, proper), proper)
+    geometric = -C_LIGHT ** 4 / (8.0 * math.pi * G) * 2.0 * convexity / areal
+
+    inner = slice(1000, -1000)
+    scale = np.abs(geometric[inner]).max()
+    assert np.allclose(pocket.pocket_null_energy(r)[inner], geometric[inner],
+                       atol=1e-4 * scale)
+
+
+def test_null_energy_integrates_to_zero_across_the_pocket():
+    """
+    dA/dl is 1 in the flat pocket and 1 outside, so
+    \\int (eps + p_r) A dl = -(c^4/4 pi G) [dA/dl] = 0: the violation at
+    the throat is balanced exactly by the region round the maximum of A.
+    """
+
+    pocket = BroeckMetric(speed=C_LIGHT)
+    n = 400000
+    step = pocket.thickness / n
+    r = pocket.inner_radius + (np.arange(n) + 0.5) * step
+    weight = (pocket.pocket_null_energy(r) * pocket.areal_radius(r)
+              * pocket.conformal_profile(r))
+
+    assert abs(weight.sum()) < 1e-5 * np.abs(weight).sum()
+
+
+def test_null_energy_holds_where_the_areal_radius_peaks():
+    """The violation is localised: near the maximum of A, A'' < 0."""
+
+    pocket = BroeckMetric(speed=C_LIGHT)
+    r = np.linspace(pocket.inner_radius, pocket.inner_radius
+                    + pocket.thickness, 200001)
+    null = pocket.pocket_null_energy(r)
+    peak = r[np.argmax(pocket.areal_radius(r))]
+
+    assert null.max() > 0.0
+    assert float(pocket.pocket_null_energy(peak)) > 0.0
+    assert peak < pocket.throat()[0]
+
+
+def test_no_inflation_no_throat_no_stress():
+    flat = BroeckMetric(speed=C_LIGHT, alpha=0.0)
+    r = np.linspace(1.0, 30.0, 50)
+
+    assert flat.throat() is None
+    assert np.all(flat.pocket_null_energy(r) == 0.0)
+    assert all(np.all(p == 0.0) for p in flat.pocket_pressures(r))
+
+
+def test_paper_pocket_violates_the_null_energy_at_its_throat(paper):
+    radius, areal = paper.throat()
+
+    assert areal == pytest.approx(1.463e-15, rel=1e-3)
+    assert float(paper.pocket_null_energy(radius)) < 0.0

@@ -149,6 +149,84 @@ class BroeckMetric(AlcubierreMetric):
         eps = C_LIGHT ** 4 / (8.0 * math.pi * G) * bracket
         return np.where(r_s > 0.0, eps, 0.0)
 
+    # --- The pocket as a static throat ---
+    def _profiles(self, r_s):
+        parameters = self._profile_parameters()
+        r_s = np.asarray(r_s, dtype=float)
+        return (r_s,
+                broeck_volume_profile(r_s, **parameters),
+                broeck_volume_profile_derivative(r_s, **parameters),
+                broeck_volume_profile_second_derivative(r_s, **parameters))
+
+    def areal_radius(self, r_s):
+        """A = B r_s, the circumference of the sphere r_s over 2 pi [m]."""
+
+        return self.conformal_profile(r_s) * np.asarray(r_s, dtype=float)
+
+    def pocket_pressures(self, r_s):
+        """
+        Radial and tangential pressure of the pocket in the orthonormal
+        frame, from `symbolic.derive_pocket`,
+
+            p_r = (c^4/8 pi G) B' (r B' + 2B) / (r B^4),
+            p_t = (c^4/8 pi G) (r B B'' - r B'^2 + B B') / (r B^4),
+
+        valid inside the shift wall, where the metric is ultrastatic in
+        the frame of the bubble and does not depend on v_s. [Pa]
+        """
+
+        r, B, first, second = self._profiles(r_s)
+        safe = np.where(r > 0.0, r, 1.0)
+        scale = C_LIGHT ** 4 / (8.0 * math.pi * G)
+        radial = scale * first * (safe * first + 2.0 * B) / (safe * B ** 4)
+        tangential = scale * (safe * B * second - safe * first ** 2
+                              + B * first) / (safe * B ** 4)
+        return (np.where(r > 0.0, radial, 0.0),
+                np.where(r > 0.0, tangential, 0.0))
+
+    def pocket_null_energy(self, r_s):
+        """
+        eps + p_r along radial light rays inside the shift wall,
+
+            eps + p_r = -(c^4/8 pi G) (2/A) d^2 A / dl^2,
+
+        with dl = B dr the proper radial distance: negative wherever the
+        areal radius is convex in proper distance, and in particular at
+        the throat. Independent of v_s and of the observer. [J m^-3]
+        """
+
+        radial, tangential = self.pocket_pressures(r_s)
+        return -2.0 * tangential
+
+    def throat(self, n_points=400001):
+        """
+        The minimal sphere of the pocket: the coordinate radius and the
+        areal radius where A = B r has its interior minimum [m], or None
+        if A never decreases, as for alpha = 0.
+
+        A pocket larger inside than outside, (1 + alpha) R~ > R~ + D~,
+        always has one: A grows as (1 + alpha) r in the pocket and as r
+        outside, so it must fall and rise again in between.
+        """
+
+        r = np.linspace(self.inner_radius, self.inner_radius
+                        + self.thickness, n_points)
+        areal = self.areal_radius(r)
+        slope = np.diff(areal)
+        falling = np.flatnonzero(slope < 0.0)
+        if falling.size == 0:
+            return None
+        k = int(np.argmin(areal))
+        if 0 < k < n_points - 1:
+            # parabola through the three samples around the minimum
+            a0, a1, a2 = areal[k - 1], areal[k], areal[k + 1]
+            h = r[1] - r[0]
+            shift = 0.5 * h * (a0 - a2) / (a0 - 2.0 * a1 + a2)
+            radius = r[k] + shift
+        else:
+            radius = r[k]
+        return float(radius), float(self.areal_radius(radius))
+
     # --- WarpMetric interface ---
     def conformal_factor(self, x, y, z):
         return self.conformal_profile(self._radius_from(x, y, z))
