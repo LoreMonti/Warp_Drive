@@ -97,7 +97,7 @@ Warp_Drive/
 │   ├── shapes.py              # radial profiles f(r), B(r) and derivatives
 │   ├── integrators.py         # RK4 and adaptive RK45 over an ensemble
 │   ├── tracers.py             # Eulerian congruence dragged by the bubble
-│   ├── diagnostics.py         # travel times, energy budget, neck scan
+│   ├── diagnostics.py         # travel times, energy budget, neck scan, quantum inequality
 │   ├── symbolic.py            # Einstein tensor: source of truth
 │   ├── geodesics.py           # null rays: the sky from the bubble
 │   ├── metrics/
@@ -155,6 +155,14 @@ condition $f = 1 - c/v_s$. The closed-form energy budget is also checked against
 the generic quadrature in the base class, which is the test that keeps the
 interface honest now that a second metric exists: for Van Den Broeck the two
 agree on both signs of the budget.
+
+For the 1999 paper the suite pins every number it prints, each against the
+configuration that actually produces it, and the factor $2 \times 10^{33}$ by
+which the printed parameters violate the quantum inequality. The curvature is
+derived symbolically from the Christoffel symbols and checked against two
+closed forms, and the quantum-inequality margin against its $\tilde\Delta^2$
+scaling at fixed $\alpha$; the search over moving observers is checked on a
+slab where the answer, $v^2 = 1/3$, is known, so a lost $\gamma$ would show.
 
 ### Where the physics comes from
 
@@ -285,10 +293,9 @@ universe. The two-scale bubble brings that below a solar mass of negative
 energy, but more than twice as much positive energy comes with it, and every
 obstruction listed below still applies.
 
-Two numbers from the paper are *not* reproduced: the peak density of eq. (14)
-and the curvature radius of eq. (20), placed at $w = 0.349$ where the printed
-profile has $B - 1 \sim 10^{-18}$. The computation finds both near
-$w \approx 0.575$; they are not used as checks.
+The peak density of eq. (14) and the curvature radius of eq. (20) are *not*
+reproduced with these parameters: the paper computes them with a different
+configuration, see the checks of the 1999 paper below.
 
 **The pocket is a throat.** Inside the shift wall, in the frame of the bubble,
 $f = 1$ and the metric is ultrastatic,
@@ -351,6 +358,59 @@ mass. It says how far any profile could improve on the 1999 number; the
 observer-independent statement is the null energy violation at the throat.
 
 ![Net energy of the transition region against its lower bounds](images/readme/broeck_energy_floor.png)
+
+**The checks of the 1999 paper.** Van Den Broeck tests his transition region
+against the quantum inequality of Ford and Roman, which bounds the density an
+observer can measure over a sampling time $\tau_0$ short compared with the
+smallest curvature radius $r_c$:
+
+```math
+\varepsilon \;\ge\; -\frac{3\hbar}{32\pi^2 c^3 \tau_0^4}, \qquad \tau_0 = \beta\,\frac{r_c}{c}, \quad \beta = 0.1
+```
+
+The metric of the pocket is ultrastatic, so its Riemann tensor is purely
+spatial, with two independent orthonormal components,
+
+```math
+R_{\hat r\hat\theta\hat r\hat\theta} = -\frac{1}{A}\frac{d^2 A}{d\ell^2} = \frac{r B'^2 - r B B'' - B B'}{r B^4}, \qquad R_{\hat\theta\hat\phi\hat\theta\hat\phi} = \frac{1 - (dA/d\ell)^2}{A^2}
+```
+
+and $`r_c = 1/\sqrt{\max|R_{\hat a\hat b\hat c\hat d}|}`$ (densities in the table
+are $\varepsilon/c^2$). The radial one, the
+curvature of the throat, is the larger and equals $-p_t$ in units of
+$`c^4/8\pi G`$. Every number the paper prints is reproduced, but only with **two
+different configurations**, both with a 100 m pocket:
+
+| | eq. (7): $\alpha = 10^{17}$, $\tilde R = \tilde\Delta = 10^{-15}$ m | the check: $\alpha = 10^{34}$, $\tilde R = \tilde\Delta = 10^{-32}$ m |
+| :--- | :--- | :--- |
+| net energies | $-1.38$, $+4.87 \times 10^{30}$ kg, the paper's eqs. (15), (16) | $-1.33$, $+4.82 \times 10^{30}$ kg |
+| curvature radius | $\tilde\Delta/43.4$ | $\tilde\Delta/72.5$, the paper's eq. (20) |
+| peak density | $-2.37 \times 10^{59}$ kg/m³ | $-6.63 \times 10^{93}$ kg/m³, the paper's eq. (22) |
+| limit | $-1.18 \times 10^{26}$ kg/m³ | $-9.21 \times 10^{94}$ kg/m³, the paper's eq. (22) |
+| quantum inequality | violated by a factor $2 \times 10^{33}$ | holds, margin 0.072 |
+
+The giveaway is $\tilde\Delta/72.5 = 1.4 \times 10^{-34}$ m, which needs
+$\tilde\Delta \approx 10^{-32}$ m. The conclusions survive, because at fixed
+proper pocket radius the energies barely depend on $\tilde\Delta$, as the floor
+above predicts; but the parameters printed in eq. (7) violate the inequality by
+33 orders of magnitude. It is an inconsistency at the level of an erratum, not a
+refutation. At fixed pocket the margin grows roughly as $\tilde\Delta^2$: the
+inequality holds only below $\tilde\Delta = 3.7 \times 10^{-32}$ m, and
+$r_c$ reaches the Planck length at $1.2 \times 10^{-33}$ m, so the check
+passes in a window of a decade and a half, with curvature radii of a few to a
+few tens of Planck lengths, where the semiclassical inequality is itself
+questionable.
+
+The paper checks only observers at rest. One moving radially at speed $v$ sees
+$`\gamma^2(\varepsilon + v^2 p_r)`$ and, with $r_c$ shortened by $\gamma$, a limit
+$\gamma^4$ times larger, so the margin goes as
+$`(\varepsilon + v^2 p_r)(1 - v^2)`$. Since
+$`\varepsilon + v^2 p_r = (1 - v^2)\,\varepsilon + v^2(\varepsilon + p_r)`$, a moving
+observer does worse only where the null contraction is more than twice as
+negative as the density. It is not, for any polynomial profile tried: the
+observers at rest are already the most restrictive.
+
+![Quantum-inequality margin of the transition region against its thickness](images/readme/broeck_quantum_inequality.png)
 
 With the same shift wall, the pocket adds a thin shell carrying both signs of
 energy and holds more space than its coordinate size: at the default parameters
@@ -530,7 +590,9 @@ Known obstructions, in rough order of severity:
 2. **Quantum inequalities.** Pfenning & Ford (1997) showed the wall must be
    thinner than $\sim 10^2$ Planck lengths, which drives the energy requirement
    back up to absurd values (the mission report prints the wall thickness in
-   Planck lengths so you can see how far off it is).
+   Planck lengths so you can see how far off it is). Van Den Broeck's pocket
+   passes the same test only with curvature radii of a few tens of Planck
+   lengths, and not with the parameters it prints (see above).
 3. **The horizon.** Computed above: the bubble cannot be controlled from
    within, so it must be laid down in advance along the entire route — which
    requires something already at the destination.
@@ -563,6 +625,8 @@ overlapping Van Den Broeck configuration, live in
   Class. Quantum Grav. **11**, L73 (1994)
 - M. J. Pfenning & L. H. Ford, Class. Quantum Grav. **14**, 1743 (1997)
 - C. Van Den Broeck, Class. Quantum Grav. **16**, 3973 (1999)
+- L. H. Ford & T. A. Roman, *Quantum field theory constrains traversable
+  wormhole geometries*, Phys. Rev. D **53**, 5496 (1996)
 - S. Finazzi, S. Liberati & C. Barceló, Phys. Rev. D **79**, 124017 (2009)
 - B. McMonigal, G. F. Lewis & P. O'Byrne, Phys. Rev. D **85**, 064024 (2012)
 - A. Bobrick & G. Martire, Class. Quantum Grav. **38**, 105009 (2021)

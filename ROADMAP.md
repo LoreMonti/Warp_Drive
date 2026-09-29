@@ -122,8 +122,8 @@ Implementation notes:
   all pinned by tests. The same quadrature does *not* reproduce the peak
   density of eq. (14) or the curvature radius of eq. (20), which it finds near
   $w \approx 0.575$ rather than $0.349$; at $w = 0.349$ the printed profile has
-  $B - 1 \sim 10^{-18}$. Those two numbers are not used as checks until the
-  discrepancy is understood;
+  $B - 1 \sim 10^{-18}$. Resolved in 3c: the paper computes those two with
+  $\alpha = 10^{34}$, $\tilde R = \tilde\Delta = 10^{-32}$ m;
 - `horizon_offset` already solves $\beta + c/B = v_s$, so the causal structure
   needs no changes either;
 - the figures take a metric, but three of them silently assumed Alcubierre:
@@ -341,8 +341,8 @@ region round the maximum of $A$.
 - [x] `pocket_energy_bound(metric)`, and a test that every profile tried lies
       above it
 - [ ] Minimum-$E_\mathrm{tot}$ profile under a lower bound on the curvature
-      radius, the constraint Van Den Broeck used to choose $n = 80$: after
-      3c, which computes that curvature radius
+      radius, the constraint Van Den Broeck used to choose $n = 80$: open
+      now that 3c computes that curvature radius
 - [x] State explicitly, following Barzegar et al., that this bounds the
       quantity used by Van Den Broeck and Pfenning and Ford, not a mass
 
@@ -356,11 +356,31 @@ rounding width (`plot_energy_floor`).
 
 3c — The checks of the 1999 paper:
 
-- [ ] Re-derive the peak density and the curvature radius of eqs. (14) and (20)
-      of the 1999 paper, which do not match its own profile
-- [ ] Redo its quantum-inequality check with the corrected numbers
-- [ ] The same check for observers crossing the transition region at high
+- [x] Re-derive the peak density and the curvature radius of eqs. (14) and (20)
+      of the 1999 paper, which do not match its own profile: orthonormal
+      Riemann components in `derive_pocket`, `BroeckMetric.curvature_radius`
+- [x] Redo its quantum-inequality check with the corrected numbers:
+      `quantum_inequality_check`, figure `plot_quantum_inequality`
+- [x] The same check for observers crossing the transition region at high
       speed, not only the Eulerian ones
+
+What 3c found: every number of the paper is reproduced, but with two
+configurations. Its energies come from eq. (7), $\alpha = 10^{17}$ and
+$\tilde R = \tilde\Delta = 10^{-15}$ m; its curvature radius
+$\tilde\Delta/72.5$ and its quantum-inequality check from $\alpha = 10^{34}$ and
+$\tilde R = \tilde\Delta = 10^{-32}$ m. With eq. (7) the inequality is violated
+by a factor $2 \times 10^{33}$; with the second set it holds, margin 0.072, and
+the energies barely change, as the floor of 3b predicts. An erratum, not a
+refutation. At a fixed 100 m pocket the inequality holds only for
+$\tilde\Delta \lt 3.7 \times 10^{-32}$ m, and $r_c$ passes the Planck length at
+$1.2 \times 10^{-33}$ m. Radially moving observers see a margin
+$`(\varepsilon + v^2 p_r)(1 - v^2)`$, worse than at rest only where
+$\varepsilon + p_r$ is more than twice as negative as $\varepsilon$; never, for
+the profiles tried.
+
+*Lesson:* the two numbers left unexplained in section 1 were not a bug in the
+quadrature: the peak position $(\alpha n)^{-1/(n-1)}$ gave away which $\alpha$
+the paper used. A discrepancy parked as "not used as a check" was worth chasing.
 
 Write-up:
 

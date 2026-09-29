@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # --- Local imports ---
-from ..constants import C_LIGHT, G, M_SUN
+from ..constants import C_LIGHT, G, L_PLANCK, M_SUN
 from .figures import energy_norm, energy_ticks
 from .style import (
     ACCENT,
@@ -290,6 +290,85 @@ def plot_energy_floor(path, pocket_radius=100.0, outer_radius=20.0,
     right.set_ylabel(r"net $E_\mathrm{tot}$  [$M_\odot$]")
     right.set_title("The floor grows with how much larger the pocket is "
                     "inside")
+    dark_axes(right)
+    _legend(right, loc="upper left")
+
+    fig.tight_layout()
+    return save(fig, path)
+
+
+def plot_quantum_inequality(path, pocket_radius=100.0, n_thickness=40,
+                            n_points=100000):
+    """
+    Margin of the Ford-Roman quantum inequality, |peak density| / |limit|,
+    for Van Den Broeck transition regions of thickness D~ = R~ enclosing a
+    pocket of fixed proper radius P, so alpha = P / D~ - 1.
+
+    The margin grows roughly as D~^2 (the peak goes as 1/D~^2, the limit
+    as 1/r_c^4 ~ 1/D~^4), with a slow drift from the position of the peak,
+    which moves with alpha. The inequality holds below the thickness where
+    the margin crosses 1, and the curvature radius falls below the Planck
+    length a little further down: the window between the two is where the
+    1999 check sits. Both of its configurations have P = 100 m.
+
+    Left: the margin against D~, with the two configurations of the paper
+    and both thresholds. Right: the curvature radius in Planck lengths
+    against the same axis.
+    """
+
+    # local imports keep viz free of a hard dependency on diagnostics
+    from ..diagnostics import quantum_inequality_check
+    from ..metrics.broeck import BroeckMetric
+
+    def pocket(thickness):
+        return BroeckMetric(speed=C_LIGHT, radius=3.0 * thickness,
+                            sigma=1.0e2 / thickness,
+                            inner_radius=thickness, thickness=thickness,
+                            alpha=pocket_radius / thickness - 1.0)
+
+    thickness = np.geomspace(1.0e-35, 1.0e-12, n_thickness)
+    checks = [quantum_inequality_check(pocket(d), n_points=n_points,
+                                       n_speeds=1) for d in thickness]
+    margin = np.array([c.margin for c in checks])
+    curvature = np.array([c.curvature_radius for c in checks]) / L_PLANCK
+
+    # both curves are power laws to high accuracy: interpolate in log-log
+    log_d = np.log(thickness)
+    holds = float(np.exp(np.interp(0.0, np.log(margin), log_d)))
+    planck = float(np.exp(np.interp(0.0, np.log(curvature), log_d)))
+
+    fig, (left, right) = dark_figure(1, 2, figsize=(12.5, 5.0))
+    for ax in (left, right):
+        ax.axvspan(planck, holds, color=TRACER, alpha=0.15, lw=0,
+                   label="inequality holds, $r_c > \\ell_P$")
+        ax.axvline(holds, color=TRACER, lw=1.0, ls="--")
+        ax.axvline(planck, color=FG, lw=1.0, ls=":")
+
+    left.loglog(thickness, margin, color=ACCENT, lw=2.0,
+                label="margin, observers at rest")
+    left.axhline(1.0, color=FG, lw=1.0, ls="--")
+    for d, name in ((1.0e-15, "eq. (7): energies"),
+                    (1.0e-32, "eq. (22): the check")):
+        check = quantum_inequality_check(pocket(d), n_points=n_points,
+                                         n_speeds=1)
+        left.plot(d, check.margin, "o", color=FG, ms=7)
+        left.annotate(f"{name}\n{check.margin:.1e}", (d, check.margin),
+                      (d * 30.0, check.margin * 1e-4), color=FG,
+                      fontsize=9,
+                      arrowprops=dict(color=FG, arrowstyle="->", lw=0.8))
+    left.set_xlabel(r"thickness of the transition  $\tilde\Delta = \tilde R$  [m]")
+    left.set_ylabel(r"$|\rho_\mathrm{peak}|\,/\,|\rho_\mathrm{QI}|$")
+    left.set_title(f"P = {pocket_radius:g} m: the inequality holds only "
+                   f"below {holds:.1e} m")
+    dark_axes(left)
+    _legend(left, loc="upper left")
+
+    right.loglog(thickness, curvature, color=ACCENT, lw=2.0,
+                 label=r"smallest curvature radius $r_c$")
+    right.axhline(1.0, color=FG, lw=1.0, ls=":")
+    right.set_xlabel(r"thickness of the transition  $\tilde\Delta = \tilde R$  [m]")
+    right.set_ylabel(r"$r_c\,/\,\ell_P$")
+    right.set_title(f"...and r_c reaches the Planck length at {planck:.1e} m")
     dark_axes(right)
     _legend(right, loc="upper left")
 

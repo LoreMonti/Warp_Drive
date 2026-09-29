@@ -26,6 +26,7 @@ from warpdrive.viz import (                                 # noqa: E402
     plot_metric_comparison,
     plot_neck_scaling,
     plot_pocket_throat,
+    plot_quantum_inequality,
 )
 from warpdrive.viz.sky import (                             # noqa: E402
     plot_sky,
@@ -162,3 +163,9 @@ def test_throat_figure_renders(tmp_path):
 def test_energy_floor_figure_renders(tmp_path):
     plot_energy_floor(str(tmp_path / "floor.png"), n_inner=6)
     assert (tmp_path / "floor.png").stat().st_size > 10_000
+
+
+def test_quantum_inequality_figure_renders(tmp_path):
+    plot_quantum_inequality(str(tmp_path / "qi.png"), n_thickness=6,
+                            n_points=2000)
+    assert (tmp_path / "qi.png").stat().st_size > 10_000

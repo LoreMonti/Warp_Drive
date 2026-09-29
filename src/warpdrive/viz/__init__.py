@@ -5,6 +5,7 @@ from .comparison import (
     plot_metric_comparison,
     plot_neck_scaling,
     plot_pocket_throat,
+    plot_quantum_inequality,
 )
 from .figures import (
     plot_all,
@@ -26,6 +27,7 @@ __all__ = [
     "plot_neck_scaling",
     "plot_pocket_throat",
     "plot_energy_floor",
+    "plot_quantum_inequality",
     "plot_sky",
     "plot_sky_mapping",
     "plot_offcentre_sky",
