@@ -330,7 +330,8 @@ moving Cartesian chart and in a static spherical one, which agree to $10^{-9}$.
 A pocket larger inside than outside has a minimal sphere where the condition
 fails, for any profile and any $v_s$; the condition is sufficient, not
 necessary. The violation integrates to zero against $`A\,d\ell`$, balanced by the
-region round the maximum of $A$.
+region round the maximum of $A$. Prior art: Krasnikov (2003) already writes the
+pocket as $r(l)$ with $`G_{\hat t\hat t} + G_{\hat r\hat r} = -2r''/r`$.
 
 3b — A lower bound on $E_\mathrm{tot}$:
 
@@ -378,9 +379,18 @@ $`(\varepsilon + v^2 p_r)(1 - v^2)`$, worse than at rest only where
 $\varepsilon + p_r$ is more than twice as negative as $\varepsilon$; never, for
 the profiles tried.
 
+Why the paper has two configurations: arXiv versions 1-4 use $\alpha = 10^{34}$,
+$10^{-32}$ m throughout; version 5 ("error in calculation corrected") changed
+eq. (7) and the energies but kept the curvature and quantum-inequality numbers.
+Krasnikov (2003, footnote 8) notes the violation in one line; its size and
+origin appear undocumented. Checked in the full texts of Lobo-Visser,
+Bobrick-Martire, Warp Factory, Schuster et al., Alcubierre-Lobo, Finazzi et al.
+and Le et al.: none re-checks the numbers.
+
 *Lesson:* the two numbers left unexplained in section 1 were not a bug in the
 quadrature: the peak position $(\alpha n)^{-1/(n-1)}$ gave away which $\alpha$
-the paper used. A discrepancy parked as "not used as a check" was worth chasing.
+the paper used. A discrepancy parked as "not used as a check" was worth chasing, and the
+revision history of a paper is part of its evidence.
 
 Write-up:
 

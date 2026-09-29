@@ -326,7 +326,11 @@ $`\varepsilon + p_r = -1.35\,c^4/8\pi G`$ per square metre there; for the 1999
 configuration the throat is $1.46 \times 10^{-15}$ m across. Since
 $dA/d\ell$ is 1 on both sides, $`\int (\varepsilon + p_r)\,A\,d\ell = 0`$: the
 violation is balanced exactly by the region round the maximum of $A$, where the
-condition holds. The derivation is done twice, in the moving Cartesian chart of
+condition holds. The throat form itself is not new: Krasnikov (2003) writes a
+Van Den Broeck pocket in proper distance and finds the same
+$`G_{\hat t\hat t} + G_{\hat r\hat r} = -2r''/r`$; what is added here is the
+link to the flare-out theorem and its check against the full moving metric.
+The derivation is done twice, in the moving Cartesian chart of
 `symbolic.derive` and in the static spherical chart of `symbolic.derive_pocket`,
 and the two agree to $10^{-9}$.
 
@@ -356,6 +360,10 @@ is the quantity Van Den Broeck and Pfenning and Ford use and which Barzegar,
 Buchert and Vigneron (2026) show to depend on the foliation and not to be a
 mass. It says how far any profile could improve on the 1999 number; the
 observer-independent statement is the null energy violation at the throat.
+The floor is on the *net* energy. The negative part alone has no such floor:
+Krasnikov (2003) shrinks it to about $-10^{-3}$ g with a profile of his own,
+and for pockets of the conformally flat form used here the floor then says the
+positive part must carry at least 0.13 solar masses more than that.
 
 ![Net energy of the transition region against its lower bounds](images/readme/broeck_energy_floor.png)
 
@@ -390,7 +398,15 @@ different configurations**, both with a 100 m pocket:
 | quantum inequality | violated by a factor $2 \times 10^{33}$ | holds, margin 0.072 |
 
 The giveaway is $\tilde\Delta/72.5 = 1.4 \times 10^{-34}$ m, which needs
-$\tilde\Delta \approx 10^{-32}$ m. The conclusions survive, because at fixed
+$\tilde\Delta \approx 10^{-32}$ m. The arXiv history explains it: versions
+1 to 4 of the paper (May and June 1999) use $\alpha = 10^{34}$ and
+$\tilde R = \tilde\Delta = 10^{-32}$ m throughout, with energies of a few
+milligrams; version 5, "error in calculation corrected", moves eq. (7) to the
+femtometre configuration and recomputes the energies, but keeps the curvature
+radius, "about ten Planck lengths", and the quantum-inequality numbers of the
+earlier one. Krasnikov (2003) remarks in a footnote that the profile violates
+the inequality; the size of the violation and its origin are, as far as we
+found, not documented. The conclusions survive, because at fixed
 proper pocket radius the energies barely depend on $\tilde\Delta$, as the floor
 above predicts; but the parameters printed in eq. (7) violate the inequality by
 33 orders of magnitude. It is an inconsistency at the level of an erratum, not a
@@ -627,6 +643,8 @@ overlapping Van Den Broeck configuration, live in
 - C. Van Den Broeck, Class. Quantum Grav. **16**, 3973 (1999)
 - L. H. Ford & T. A. Roman, *Quantum field theory constrains traversable
   wormhole geometries*, Phys. Rev. D **53**, 5496 (1996)
+- S. Krasnikov, *Quantum inequalities do not forbid spacetime shortcuts*,
+  Phys. Rev. D **67**, 104013 (2003)
 - S. Finazzi, S. Liberati & C. Barceló, Phys. Rev. D **79**, 124017 (2009)
 - B. McMonigal, G. F. Lewis & P. O'Byrne, Phys. Rev. D **85**, 064024 (2012)
 - A. Bobrick & G. Martire, Class. Quantum Grav. **38**, 105009 (2021)
