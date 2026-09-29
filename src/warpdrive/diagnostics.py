@@ -18,6 +18,7 @@ from .constants import (
     D_PROXIMA,
     G,
     G_EARTH,
+    HBAR,
     L_PLANCK,
     LY,
     M_JUP,
@@ -317,4 +318,89 @@ def neck_scaling(neck_radii, pocket_radius=100.0, wall=1.0e2 * L_PLANCK,
         transition_negative=negative,
         transition_positive=positive,
         alcubierre=reference.energy_budget_analytic().negative,
+    )
+
+
+@dataclass
+class QuantumInequalityCheck:
+    """
+    Ford-Roman quantum inequality applied to the transition region of a
+    Van Den Broeck pocket. Densities in kg m^-3.
+    """
+
+    #: Most negative density seen by the static observers.
+    peak_density: float
+
+    #: Coordinate radius r_s of that peak [m].
+    peak_radius: float
+
+    #: Smallest curvature radius of the region [m].
+    curvature_radius: float
+
+    #: Lower bound on the density for sampling time beta r_c / c.
+    limit: float
+
+    #: Radial speed v / c of the most restrictive observer.
+    worst_speed: float
+
+    #: |density| / |limit| for that observer: above 1 the inequality is
+    #: violated.
+    margin: float
+
+    @property
+    def violated(self):
+        return self.margin > 1.0
+
+
+def quantum_inequality_check(metric, beta=0.1, n_points=400000,
+                             n_speeds=1000):
+    """
+    Van Den Broeck's quantum-inequality check of the transition region,
+    extended to radially moving observers.
+
+    Ford and Roman's inequality for a massless scalar field, trusted in
+    curved spacetime for sampling times tau_0 much shorter than the
+    smallest curvature radius, tau_0 = beta r_c / c, bounds the density
+    from below by
+
+        rho >= -3 hbar c / (32 pi^2 (c tau_0)^4) / c^2   [kg m^-3].
+
+    An observer moving radially at speed v sees eps' = gamma^2 (eps +
+    v^2 p_r), and since curvature components are boosted by up to
+    gamma^2 its r_c, and with it tau_0, shrinks by gamma: the limit grows
+    as gamma^4. The margin of that observer is therefore
+
+        |eps + v^2 p_r| (1 - v^2) / |limit at rest|,
+
+    maximised here over v and over the region. Writing eps + v^2 p_r =
+    (1 - v^2) eps + v^2 (eps + p_r), the margin grows away from v = 0 only
+    if the most negative null contraction eps + p_r is more than twice
+    the most negative density. It is not for the paper's profile, nor for
+    any polynomial profile tried, so the observer at rest, the only one
+    the 1999 paper checks, is already the most restrictive.
+
+    Returns a QuantumInequalityCheck.
+    """
+
+    r = metric._transition_grid(n_points)
+    eps = metric._conformal_density(r)
+    radial, _ = metric.pocket_pressures(r)
+    r_c, _ = metric.curvature_radius(n_points)
+
+    k = int(np.argmin(eps))
+    limit = -3.0 * HBAR * C_LIGHT / (32.0 * math.pi ** 2
+                                     * (beta * r_c) ** 4) / C_LIGHT ** 2
+
+    speeds = np.arange(n_speeds) / n_speeds
+    worst = [-np.min(eps + v ** 2 * radial) * (1.0 - v ** 2)
+             for v in speeds]
+    j = int(np.argmax(worst))
+
+    return QuantumInequalityCheck(
+        peak_density=float(eps[k] / C_LIGHT ** 2),
+        peak_radius=float(r[k]),
+        curvature_radius=r_c,
+        limit=float(limit),
+        worst_speed=float(speeds[j]),
+        margin=float(worst[j] / C_LIGHT ** 2 / abs(limit)),
     )

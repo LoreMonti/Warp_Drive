@@ -259,6 +259,51 @@ class BroeckMetric(AlcubierreMetric):
             radius = r[k]
         return float(radius), float(self.areal_radius(radius))
 
+    # --- Curvature of the pocket ---
+    def riemann_components(self, r_s):
+        """
+        The two independent orthonormal Riemann components inside the shift
+        wall, from `symbolic.derive_pocket`, with A = B r and dl = B dr,
+
+            R_{r th r th}   = (r B'^2 - r B B'' - B B') / (r B^4),
+            R_{th ph th ph} = (1 - (dA/dl)^2) / A^2,
+
+        both zero where B is constant. [m^-2]
+        """
+
+        r, B, first, second = self._profiles(r_s)
+        safe = np.where(r > 0.0, r, 1.0)
+        radial = (safe * first ** 2 - safe * B * second
+                  - B * first) / (safe * B ** 4)
+        slope = (first * safe + B) / B
+        tangential = (1.0 - slope ** 2) / (B * safe) ** 2
+        return (np.where(r > 0.0, radial, 0.0),
+                np.where(r > 0.0, tangential, 0.0))
+
+    def _transition_grid(self, n_points):
+        # uniform in w = (R~ + D~ - r) / D~, open at both edges
+        w = (np.arange(n_points) + 0.5) / n_points
+        return self.inner_radius + self.thickness * (1.0 - w)
+
+    def curvature_radius(self, n_points=400000):
+        """
+        Smallest curvature radius of the transition region,
+
+            r_c = 1 / sqrt(max |R_{abcd}|)   [m],
+
+        over both orthonormal components, and the radius r_s where it is
+        reached. For the paper's profile the radial component wins, and
+        r_c = D~ / 72.46 for alpha = 1e34 (eq. 20 of the 1999 paper).
+
+        Returns (r_c [m], r_s [m]).
+        """
+
+        r = self._transition_grid(n_points)
+        radial, tangential = self.riemann_components(r)
+        largest = np.maximum(np.abs(radial), np.abs(tangential))
+        k = int(np.argmax(largest))
+        return float(1.0 / math.sqrt(largest[k])), float(r[k])
+
     # --- WarpMetric interface ---
     def conformal_factor(self, x, y, z):
         return self.conformal_profile(self._radius_from(x, y, z))

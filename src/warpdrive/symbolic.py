@@ -182,6 +182,31 @@ def ricci_tensor(gamma, coords):
     return ricci
 
 
+def riemann_component(gamma, g, coords, a, b, c, d):
+    """
+    One covariant component R_{abcd} = g_{ae} R^e_{bcd}, with
+
+        R^e_{bcd} = d_c Gamma^e_{db} - d_d Gamma^e_{cb}
+                    + Gamma^e_{cs} Gamma^s_{db} - Gamma^e_{ds} Gamma^s_{cb}.
+
+    Only the components asked for are built, so a spherical chart with a
+    few independent ones stays cheap.
+    """
+
+    n = len(coords)
+    total = sp.S.Zero
+    for e in range(n):
+        if g[a, e] == 0:
+            continue
+        upper = (sp.diff(gamma[e][d][b], coords[c])
+                 - sp.diff(gamma[e][c][b], coords[d]))
+        for s in range(n):
+            upper += (gamma[e][c][s] * gamma[s][d][b]
+                      - gamma[e][d][s] * gamma[s][c][b])
+        total += g[a, e] * upper
+    return reduce_expr(total)
+
+
 def einstein_tensor(g, ginv, coords):
     """
     G_{mn} = R_{mn} - 1/2 g_{mn} R.
@@ -449,8 +474,22 @@ def derive_pocket():
     Visser's flare-out condition, which does not depend on topology and
     holds for any profile of B and any v_s.
 
+    The orthonormal Riemann tensor has two independent components, both
+    purely spatial since the metric is ultrastatic, R_{0i0j} = 0:
+
+        R_{r th r th} = -(d^2 A / dl^2) / A
+                      = (r B'^2 - r B B'' - B B') / (r B^4),
+        R_{th ph th ph} = (1 - (dA/dl)^2) / A^2,
+
+    in m^-2. The radial one equals -p_t: the tidal stretching across the
+    neck and the tangential pressure are the same number. The smallest
+    curvature radius, 1 / sqrt(max |R|), sets the sampling time of the
+    quantum inequalities (`quantum_inequality_check`).
+
     Returns a dict with the chart, B, the metric, the Einstein tensor,
-    eps, p_r, p_t, eps + p_r, the areal radius and the geometric form.
+    eps, p_r, p_t, eps + p_r, the areal radius, the geometric form and
+    the orthonormal Riemann components ("riemann_radial",
+    "riemann_tangential", "riemann_time_radial").
     """
 
     w, r, theta, phi = sp.symbols("w r theta phi", positive=True)
@@ -462,6 +501,9 @@ def derive_pocket():
     ginv = sp.diag(-1, 1 / conformal ** 2, 1 / (conformal ** 2 * r ** 2),
                    1 / (conformal ** 2 * r ** 2 * sp.sin(theta) ** 2))
     einstein, _, _ = einstein_tensor(g, ginv, coords)
+    gamma = christoffel(g, ginv, coords)
+    radial_scale = conformal ** 2
+    angular_scale = conformal ** 2 * r ** 2
 
     density = reduce_expr(einstein[0, 0])
     radial = reduce_expr(einstein[1, 1] / conformal ** 2)
@@ -483,6 +525,15 @@ def derive_pocket():
         "areal_radius": areal,
         "areal_slope": slope,
         "throat_form": reduce_expr(-2 * curvature / areal),
+        "riemann_radial": reduce_expr(
+            riemann_component(gamma, g, coords, 1, 2, 1, 2)
+            / (radial_scale * angular_scale)),
+        "riemann_tangential": reduce_expr(
+            riemann_component(gamma, g, coords, 2, 3, 2, 3)
+            / (angular_scale ** 2 * sp.sin(theta) ** 2)),
+        "riemann_time_radial": reduce_expr(
+            riemann_component(gamma, g, coords, 0, 1, 0, 1)
+            / radial_scale),
     }
 
 

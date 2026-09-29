@@ -337,3 +337,26 @@ def test_pocket_density_is_a_laplacian_of_psi(pocket):
     laplacian = sp.diff(psi, r, 2) + 2 * sp.diff(psi, r) / r
 
     assert sp.simplify(density + 4 * laplacian / psi ** 5) == 0
+
+
+def test_pocket_riemann_components(pocket):
+    """
+    The radial component in terms of B, the geometric forms in terms of the
+    areal radius, and no tidal term in time: the metric is ultrastatic.
+    """
+
+    r = pocket["coords"][1]
+    B = pocket["conformal"]
+    first, second = sp.diff(B, r), sp.diff(B, r, 2)
+    areal = pocket["areal_radius"]
+    slope = pocket["areal_slope"]
+    curvature = sp.diff(slope, r) / B
+
+    radial_b_form = (r * first ** 2 - r * B * second - B * first) / (r * B ** 4)
+    assert sp.simplify(pocket["riemann_radial"] - radial_b_form) == 0
+    assert sp.simplify(pocket["riemann_radial"] + curvature / areal) == 0
+    assert sp.simplify(pocket["riemann_radial"]
+                       + pocket["tangential_pressure"]) == 0
+    assert sp.simplify(pocket["riemann_tangential"]
+                       - (1 - slope ** 2) / areal ** 2) == 0
+    assert pocket["riemann_time_radial"] == 0

@@ -11,8 +11,10 @@ from .diagnostics import (
     energy_scaling_table,
     format_profile,
     neck_scaling,
+    QuantumInequalityCheck,
     pocket_energy_floor,
     profile_mission,
+    quantum_inequality_check,
     relativistic_rocket,
 )
 from .geodesics import (
@@ -53,6 +55,8 @@ __all__ = [
     "NeckScaling",
     "neck_scaling",
     "pocket_energy_floor",
+    "QuantumInequalityCheck",
+    "quantum_inequality_check",
     "relativistic_rocket",
     "integrate_tracers",
     "RayBundle",

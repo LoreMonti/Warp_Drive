@@ -20,6 +20,7 @@ from warpdrive import (
     neck_scaling,
     pocket_energy_floor,
     profile_mission,
+    quantum_inequality_check,
 )
 from warpdrive.constants import C_LIGHT, G, L_PLANCK
 from warpdrive.geodesics import throat_radius
@@ -446,3 +447,111 @@ def test_floor_numbers_and_no_floor_without_excess(paper):
     assert paper.transition_energy_budget().net > floor
 
     assert pocket_energy_floor(15.0, 20.0) == (0.0, None)
+
+
+# --- The quantum-inequality check of the 1999 paper ---
+def _pocket(alpha, thickness):
+    """R~ = D~, R = 3 D~, as in the paper, with a wall thin enough to fit."""
+
+    return BroeckMetric(speed=C_LIGHT, radius=3.0 * thickness,
+                        sigma=1.0e2 / thickness, inner_radius=thickness,
+                        thickness=thickness, alpha=alpha)
+
+
+@pytest.fixture(scope="module")
+def checked():
+    """The parameters the paper's quantum-inequality check actually uses."""
+
+    return quantum_inequality_check(_pocket(1.0e34, 1.0e-32))
+
+
+def test_curvature_radius_of_the_paper_check(checked):
+    """Eq. (20): r_c = D~ / 72.5 = 1.4e-34 m, near w = 0.349."""
+
+    assert 1.0e-32 / checked.curvature_radius == pytest.approx(72.46,
+                                                               rel=1e-3)
+    w = (2.0e-32 - checked.peak_radius) / 1.0e-32
+    assert w == pytest.approx(0.349, abs=1e-3)
+
+
+def test_quantum_inequality_numbers_of_the_paper(checked):
+    """Eq. (22): -6.6e93 kg/m^3 against a limit of -9.2e94 kg/m^3."""
+
+    assert checked.peak_density == pytest.approx(-6.63e93, rel=2e-3)
+    assert checked.limit == pytest.approx(-9.21e94, rel=2e-3)
+    assert not checked.violated
+
+
+def test_printed_parameters_violate_the_inequality(paper):
+    """
+    With the alpha = 1e17, D~ = 1e-15 m of eq. (7), which give the paper's
+    energies, the same check fails by 33 orders of magnitude.
+    """
+
+    check = quantum_inequality_check(paper)
+    assert paper.thickness / check.curvature_radius == pytest.approx(
+        43.39, rel=1e-3)
+    assert check.peak_density == pytest.approx(-2.37e59, rel=2e-3)
+    assert check.limit == pytest.approx(-1.184e26, rel=1e-3)
+    assert check.margin == pytest.approx(2.0e33, rel=1e-2)
+    assert check.violated
+
+
+def test_margin_scales_with_the_square_of_the_thickness(checked):
+    """Peak ~ 1/D~^2 and limit ~ 1/r_c^4 ~ 1/D~^4 at fixed alpha."""
+
+    for scale in (0.5, 2.0):
+        other = quantum_inequality_check(_pocket(1.0e34, scale * 1.0e-32))
+        assert other.margin / checked.margin == pytest.approx(scale ** 2,
+                                                              rel=1e-6)
+
+
+def test_radial_curvature_is_minus_the_tangential_pressure(paper):
+    """R_{r th r th} = -p_t in units of c^4 / 8 pi G, as derive_pocket finds."""
+
+    r = paper._transition_grid(1000)
+    radial, _ = paper.riemann_components(r)
+    _, tangential = paper.pocket_pressures(r)
+    scale = C_LIGHT ** 4 / (8.0 * math.pi * G)
+    np.testing.assert_allclose(radial, -tangential / scale, rtol=1e-10)
+
+
+def test_no_inflation_no_curvature():
+    flat = BroeckMetric(speed=C_LIGHT, alpha=0.0)
+    r = flat._transition_grid(100)
+    for component in flat.riemann_components(r):
+        assert np.all(component == 0.0)
+
+
+def test_observers_at_rest_are_the_most_restrictive(checked):
+    assert checked.worst_speed == 0.0
+
+
+class _SlabPocket:
+    """Uniform eps = -1 and p_r = -3: the margin peaks at v^2 = 1/3."""
+
+    def _transition_grid(self, n_points):
+        return np.linspace(1.0, 2.0, n_points)
+
+    def _conformal_density(self, r):
+        return -np.ones_like(r) * C_LIGHT ** 2
+
+    def pocket_pressures(self, r):
+        return -3.0 * np.ones_like(r) * C_LIGHT ** 2, np.zeros_like(r)
+
+    def curvature_radius(self, n_points):
+        return 1.0, 1.5
+
+
+def test_moving_observers_win_when_null_contraction_dominates():
+    """
+    (eps + v^2 p_r)(1 - v^2) = (1 + 3 v^2)(1 - v^2) is largest at
+    v^2 = 1/3, where it is 4/3 of its value at rest.
+    """
+
+    at_rest = quantum_inequality_check(_SlabPocket(), n_speeds=1)
+    moving = quantum_inequality_check(_SlabPocket(), n_speeds=10000)
+    assert moving.worst_speed == pytest.approx(1.0 / math.sqrt(3.0),
+                                               abs=1e-4)
+    assert moving.margin / at_rest.margin == pytest.approx(4.0 / 3.0,
+                                                           rel=1e-6)
