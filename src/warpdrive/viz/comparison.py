@@ -374,3 +374,77 @@ def plot_quantum_inequality(path, pocket_radius=100.0, n_thickness=40,
 
     fig.tight_layout()
     return save(fig, path)
+
+
+def plot_curvature_bound(path, pocket_radius=100.0, outer_radius=20.0,
+                         orders=(4, 10, 20, 40, 80, 160), n_inner=12,
+                         n_points=100000):
+    """
+    What a bound on the curvature radius costs.
+
+    Left: net E_tot over the floor (2 c^4/G)(P - b) against the smallest
+    curvature radius r_c, at fixed proper pocket radius P and outer radius
+    b. Polynomial profiles of several orders, each for a range of inner
+    radii, against `ConePocket`, which stays on the floor up to a
+    correction of order r_c^2: the bound on r_c does not force the
+    factor the polynomials pay.
+
+    Right: D~ / r_c of the polynomial against its order n, for the
+    alpha = 1e34 of the first arXiv versions of the 1999 paper and the
+    alpha = 1e17 of its published eq. (7), with the paper's n = 80.
+    """
+
+    # local imports keep viz free of a hard dependency on diagnostics
+    from ..diagnostics import (ConePocket, curvature_radius_by_order,
+                               pocket_energy_floor)
+    from ..metrics.broeck import BroeckMetric
+
+    P, b = pocket_radius, outer_radius
+    floor, _ = pocket_energy_floor(P, b)
+
+    fig, (left, right) = dark_figure(1, 2, figsize=(12.5, 5.0))
+    colours = plt.get_cmap("plasma")(np.linspace(0.15, 0.85, len(orders)))
+    for order, colour in zip(orders, colours):
+        radii, energies = [], []
+        for a in np.geomspace(0.05 * b, 0.9 * b, n_inner):
+            pocket = BroeckMetric(speed=C_LIGHT, inner_radius=a,
+                                  thickness=b - a, alpha=P / a - 1.0,
+                                  order=order)
+            radii.append(pocket.curvature_radius(n_points)[0])
+            energies.append(pocket.transition_energy_budget(n_points).net)
+        left.loglog(np.array(radii) / b, np.array(energies) / floor, "o-",
+                    color=colour, ms=3, lw=1.0,
+                    label=f"polynomial, n = {order}")
+
+    r_min = np.geomspace(1e-4, 0.45, 200) * b
+    cone = [ConePocket(P, b, r).energy() / floor for r in r_min]
+    left.loglog(r_min / b, cone, color=ACCENT, lw=2.4,
+                label="rounded cone")
+    left.axhline(1.0, color=FG, lw=1.0, ls="--",
+                 label=r"floor $2c^4(P - b)/G$")
+    left.set_xlabel(r"smallest curvature radius  $r_c / b$")
+    left.set_ylabel(r"net $E_\mathrm{tot}$ / floor")
+    left.set_title(f"P = {P:g} m, b = {b:g} m: the curvature bound "
+                   "costs almost nothing")
+    dark_axes(left)
+    _legend(left, loc="upper right", ncol=2)
+
+    orders_scan = np.arange(10, 161)
+    for alpha, name, colour in ((1.0e34, r"$\alpha = 10^{34}$ (v1-v4)",
+                                 ACCENT),
+                                (1.0e17, r"$\alpha = 10^{17}$, eq. (7)",
+                                 TRACER)):
+        ratios = curvature_radius_by_order(alpha, orders_scan, n_points)
+        k = int(np.argmin(ratios))
+        right.semilogy(orders_scan, ratios, color=colour, lw=2.0,
+                       label=f"{name}: best n = {orders_scan[k]}")
+        right.plot(orders_scan[k], ratios[k], "o", color=colour, ms=6)
+    right.axvline(80, color=FG, lw=1.0, ls=":", label="the paper's n = 80")
+    right.set_xlabel("order of the polynomial  $n$")
+    right.set_ylabel(r"$\tilde\Delta / r_c$  (smaller is smoother)")
+    right.set_title("n = 80 is optimal only for the first configuration")
+    dark_axes(right)
+    _legend(right, loc="upper right")
+
+    fig.tight_layout()
+    return save(fig, path)

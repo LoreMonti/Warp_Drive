@@ -97,7 +97,7 @@ Warp_Drive/
 │   ├── shapes.py              # radial profiles f(r), B(r) and derivatives
 │   ├── integrators.py         # RK4 and adaptive RK45 over an ensemble
 │   ├── tracers.py             # Eulerian congruence dragged by the bubble
-│   ├── diagnostics.py         # travel times, energy budget, neck scan, quantum inequality
+│   ├── diagnostics.py         # travel times, energy budget, neck scan, quantum inequality, cone pocket
 │   ├── symbolic.py            # Einstein tensor: source of truth
 │   ├── geodesics.py           # null rays: the sky from the bubble
 │   ├── metrics/
@@ -163,6 +163,12 @@ derived symbolically from the Christoffel symbols and checked against two
 closed forms, and the quantum-inequality margin against its $\tilde\Delta^2$
 scaling at fixed $\alpha$; the search over moving observers is checked on a
 slab where the answer, $v^2 = 1/3$, is known, so a lost $\gamma$ would show.
+The areal form of the energy is checked against the quadrature on three
+pockets; the rounded cone must sit above the floor by exactly its closed-form
+excess, which scales as $r_\mathrm{min}^2$, reach the requested curvature radius
+at *both* corners, cost less than every polynomial with the same curvature
+radius, and cross the quantum inequality at $35\,\ell_P$ with a margin going as
+$r_c^2$.
 
 ### Where the physics comes from
 
@@ -427,6 +433,61 @@ negative as the density. It is not, for any polynomial profile tried: the
 observers at rest are already the most restrictive.
 
 ![Quantum-inequality margin of the transition region against its thickness](images/readme/broeck_quantum_inequality.png)
+
+**The cheapest pocket under a curvature bound.** Any static spherical pocket can
+be written as $`dl^2 + A(l)^2 d\Omega^2`$, with $l$ the proper radial distance
+and $A$ the areal radius, and then
+
+```math
+\varepsilon = \frac{c^4}{8\pi G}\,\frac{1 - A'^2 - 2AA''}{A^2}, \qquad E_\mathrm{tot} = \int \varepsilon\,4\pi A^2\,dl = \frac{c^4}{2G}\int \left(1 + A'^2\right) dl + \frac{c^4}{G}\,(P - b)
+```
+
+after one integration by parts, with $A' = 1$ in the flat pocket and outside.
+Since $1 + A'^2 \ge 2|A'|$ and $A$ must fall from $P$ to its minimum and rise
+back to $b$,
+
+```math
+E_\mathrm{tot} \;\ge\; \frac{2c^4}{G}\,(P - A_\mathrm{min}) \;\ge\; \frac{2c^4}{G}\,(P - b)
+```
+
+for every spherical pocket, not only the conformally flat ones of the previous
+paragraph. The proof also shows what saturates it: a cone, $A' = -1$ from
+$A = P$ down to $A = b$, where the density vanishes and all the energy sits at
+the two corners. Rounding the corners so that the curvature radius never falls
+below $r_\mathrm{min}$ costs, in closed form,
+
+```math
+E_\mathrm{tot} = \frac{2c^4}{G}\,(P - b) + \frac{2c^4}{3G}\,(L_1 + L_2), \qquad L_1 = \frac{2r_\mathrm{min}^2}{P}, \quad L_2 \simeq \frac{2r_\mathrm{min}^2}{b}
+```
+
+a relative excess of $10^{-55}$ for the 1999 pocket at ten Planck lengths. The
+bound on the curvature radius Van Den Broeck used to choose his profile does not
+force the factor of 13 his profile pays; the shape does. Krasnikov (2003) already
+builds a pocket of this kind, with a parabolic corner a Planck length thick, to
+minimise the *negative* energy; what is added here is the identity for the net
+energy, the floor for every spherical pocket, and the closed-form cost of the
+curvature bound.
+
+At the outer corner the density is set by the curvature,
+$`\varepsilon \simeq -c^4/4\pi G r_c^2`$, while the quantum-inequality limit
+grows as $1/r_c^4$. Their ratio is $`(8\pi/3)\,\beta^4 (r_c/\ell_P)^2`$, so the
+inequality caps the curvature radius instead of bounding it from below:
+
+```math
+r_c \;\le\; \sqrt{\frac{3}{8\pi}}\;\frac{\ell_P}{\beta^2} \approx 35\,\ell_P \qquad (\beta = 0.1)
+```
+
+This is why the check of the 1999 paper passes only in a narrow window near the
+Planck length. It is the same reasoning by which Pfenning and Ford bound the
+shift wall to about $10^2\,\ell_P$, applied to the pocket.
+
+Finally, the paper says $n = 80$ is the order that maximises $r_c$. It is, to
+0.1%, for $\alpha = 10^{34}$, the configuration of its first four arXiv
+versions (the exact optimum is $n = 84$); for the $\alpha = 10^{17}$ of the
+published eq. (7) the best order is $n = 44$, one more trace of the same
+revision.
+
+![Net energy against the curvature bound, and the best order of the polynomial](images/readme/broeck_curvature_bound.png)
 
 With the same shift wall, the pocket adds a thin shell carrying both signs of
 energy and holds more space than its coordinate size: at the default parameters

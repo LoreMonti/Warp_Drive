@@ -22,6 +22,7 @@ from warpdrive import (                                     # noqa: E402
 from warpdrive.constants import C_LIGHT                     # noqa: E402
 from warpdrive.viz import (                                 # noqa: E402
     plot_all,
+    plot_curvature_bound,
     plot_energy_floor,
     plot_metric_comparison,
     plot_neck_scaling,
@@ -169,3 +170,9 @@ def test_quantum_inequality_figure_renders(tmp_path):
     plot_quantum_inequality(str(tmp_path / "qi.png"), n_thickness=6,
                             n_points=2000)
     assert (tmp_path / "qi.png").stat().st_size > 10_000
+
+
+def test_curvature_bound_figure_renders(tmp_path):
+    plot_curvature_bound(str(tmp_path / "bound.png"), orders=(10, 80),
+                         n_inner=3, n_points=2000)
+    assert (tmp_path / "bound.png").stat().st_size > 10_000

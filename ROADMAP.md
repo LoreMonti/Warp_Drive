@@ -341,9 +341,9 @@ pocket as $r(l)$ with $`G_{\hat t\hat t} + G_{\hat r\hat r} = -2r''/r`$.
       harmonic $\psi$, and the floor at fixed proper pocket radius $P$
 - [x] `pocket_energy_bound(metric)`, and a test that every profile tried lies
       above it
-- [ ] Minimum-$E_\mathrm{tot}$ profile under a lower bound on the curvature
-      radius, the constraint Van Den Broeck used to choose $n = 80$: open
-      now that 3c computes that curvature radius
+- [x] Minimum-$E_\mathrm{tot}$ profile under a lower bound on the curvature
+      radius, the constraint Van Den Broeck used to choose $n = 80$:
+      `ConePocket`, done after 3c (see below)
 - [x] State explicitly, following Barzegar et al., that this bounds the
       quantity used by Van Den Broeck and Pfenning and Ford, not a mass
 
@@ -386,6 +386,28 @@ Krasnikov (2003, footnote 8) notes the violation in one line; its size and
 origin appear undocumented. Checked in the full texts of Lobo-Visser,
 Bobrick-Martire, Warp Factory, Schuster et al., Alcubierre-Lobo, Finazzi et al.
 and Le et al.: none re-checks the numbers.
+
+3c, continued — the cheapest pocket under a curvature bound:
+
+- [x] Energy in the areal form $`dl^2 + A^2 d\Omega^2`$:
+      `BroeckMetric.areal_energy`, equal to the quadrature to $10^{-7}$
+- [x] The floor for every spherical pocket, and the cone that saturates it,
+      with corners rounded to $r_\mathrm{min}$: `ConePocket`
+- [x] The cap $`r_c \le \sqrt{3/8\pi}\,\ell_P/\beta^2`$ from the quantum
+      inequality: `quantum_inequality_threshold`
+- [x] The paper's claim that $n = 80$ maximises $r_c$:
+      `curvature_radius_by_order`, figure `plot_curvature_bound`
+
+What it found: $E_\mathrm{tot} = (c^4/2G)\int(1 + A'^2)\,dl + (c^4/G)(P - b)$ for
+any static spherical pocket, so $E_\mathrm{tot} \ge (2c^4/G)(P - b)$ without the
+conformally flat assumption of 3b. A cone reaches it; rounding its corners to
+$r_\mathrm{min}$ costs a relative $`(L_1 + L_2)/3(P - b)`$, of order
+$r_\mathrm{min}^2/b\,P$, so the curvature bound is not what makes the paper's
+profile 13 times the floor. The quantum inequality holds at the corners only for
+$r_c \lt 35\,\ell_P$. $n = 80$ is the best order for $\alpha = 10^{34}$ (exactly
+84, 0.1% smoother) but not for the published $\alpha = 10^{17}$, where it is 44.
+Prior art: Krasnikov's pocket of 2003 is of this shape, built to minimise the
+negative energy only.
 
 *Lesson:* the two numbers left unexplained in section 1 were not a bug in the
 quadrature: the peak position $(\alpha n)^{-1/(n-1)}$ gave away which $\alpha$
