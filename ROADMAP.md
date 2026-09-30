@@ -416,8 +416,10 @@ revision history of a paper is part of its evidence.
 
 Write-up:
 
-- [ ] Note in LaTeX, compiled with tectonic, with 3a, 3b and 3c
-- [ ] README section and figure
+- [x] README sections and figures for 3a, 3b and 3c
+- [ ] Note in LaTeX: deferred to the paper of sections 4 and 5, of which
+      section 3 becomes the first part; writing it now would mean writing it
+      twice
 
 With $\psi = \sqrt{B}$, $a = \tilde R$ and $b = \tilde R + \tilde\Delta$, the
 net $E_\mathrm{tot}$ of the transition region and its lower bound are
@@ -438,6 +440,8 @@ the bound, the polynomial of order 10 1.46 times, and no profile tried falls
 below it.
 
 ## 4. Hawking radiation through the throat
+
+**Next.** Section 3 is done; this is the step in progress.
 
 The question: does the pocket shield the crew from the Hawking radiation of
 the warp horizon, and by how much?
@@ -535,7 +539,8 @@ Machine learning (optional):
 Write-up:
 
 - [ ] One paper covering sections 4 and 5: the same ray optics, two greybody
-      factors, and the laboratory prediction
+      factors, and the laboratory prediction, opened by the results of
+      section 3
 
 The acoustic line element is conformal to the Van Den Broeck one,
 

@@ -692,8 +692,8 @@ longer faster than light.
 
 ## Roadmap
 
-The next steps, an observer away from the centre of the pocket and the
-overlapping Van Den Broeck configuration, live in
+The next step, the Hawking radiation of the warp horizon seen through the
+throat of the pocket, and the acoustic analogue after it, live in
 **[ROADMAP.md](ROADMAP.md)**.
 
 ## References
