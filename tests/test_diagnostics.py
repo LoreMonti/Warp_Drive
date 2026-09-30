@@ -11,6 +11,7 @@ import pytest
 
 from warpdrive import (
     AlcubierreMetric,
+    BroeckMetric,
     EnergyBudget,
     format_profile,
     profile_mission,
@@ -221,3 +222,15 @@ def test_mission_profile_is_self_consistent():
     # the warp bubble beats the rocket in coordinate time, which is the
     # only comparison that means anything to whoever stayed behind
     assert profile.coordinate_time < profile.rocket_coordinate_time
+
+
+@pytest.mark.parametrize("ratio", [2.0, 1.5, 10.0])
+def test_unresolvable_wall_is_never_reported_as_subluminal(ratio):
+    """
+    At v_s = 2c the unresolved wall rounds to f = 1/2, where the photon
+    speed is exactly zero; that must raise, not pass for 'no horizon'.
+    """
+
+    metric = BroeckMetric.from_paper(speed=ratio * C_LIGHT)
+    with pytest.raises(ValueError):
+        metric.horizon_offset()

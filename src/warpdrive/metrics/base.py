@@ -311,12 +311,17 @@ class WarpMetric(ABC):
             # which would vanish in rounding if added to beta ~ v_s
             return (beta - self.speed) + C_LIGHT / conformal
 
-        half = WALL_HALF_WIDTH / self.sigma
-        lo, hi = 0.0, self.radius + half
-        if photon_speed(lo) <= 0.0 or photon_speed(hi) >= 0.0:
+        # beta + c/B - v_s is c/B > 0 at the centre and c - v_s outside the
+        # wall, where f = 0 and B = 1: it changes sign iff v_s > c. Decide
+        # that from the speed, not from samples: when the wall is too thin
+        # for double precision, radius + half rounds to the radius itself,
+        # where f = 1/2 and at v_s = 2c the photon speed is exactly zero.
+        if self.speed <= C_LIGHT:
             return None
 
-        if half < MIN_RELATIVE_WIDTH * hi:
+        half = WALL_HALF_WIDTH / self.sigma
+        lo, hi = 0.0, self.radius + half
+        if half < MIN_RELATIVE_WIDTH * hi or photon_speed(hi) >= 0.0:
             raise ValueError(
                 f"wall of thickness {1.0 / self.sigma:.3e} m is too thin to "
                 f"resolve around a radius of {self.radius:.3e} m"
