@@ -16,11 +16,14 @@ import pytest
 from warpdrive import (
     AlcubierreMetric,
     BroeckMetric,
+    ConePocket,
+    curvature_radius_by_order,
     format_profile,
     neck_scaling,
     pocket_energy_floor,
     profile_mission,
     quantum_inequality_check,
+    quantum_inequality_threshold,
 )
 from warpdrive.constants import C_LIGHT, G, L_PLANCK
 from warpdrive.geodesics import throat_radius
@@ -555,3 +558,95 @@ def test_moving_observers_win_when_null_contraction_dominates():
                                                abs=1e-4)
     assert moving.margin / at_rest.margin == pytest.approx(4.0 / 3.0,
                                                            rel=1e-6)
+
+
+# --- The cheapest pocket under a curvature bound ---
+def test_areal_form_of_the_energy_matches_the_quadrature(metric, paper):
+    """E_tot = (c^4/2G) int (1 + A'^2) dl + (c^4/G)(P - b), for any pocket."""
+
+    for pocket in (metric, paper, BroeckMetric(speed=C_LIGHT, alpha=3.0,
+                                               order=10)):
+        assert pocket.areal_energy() == pytest.approx(
+            pocket.transition_energy_budget().net, rel=1e-6)
+
+
+def test_cone_approaches_the_floor_as_the_square_of_r_min():
+    """
+    Excess over the floor (L_1 + L_2) / 3 (P - b), with L_1 = 2 r^2 / P
+    and L_2 ~ 2 r^2 / b: 5e-8 for P = 100 m, b = 20 m, r = 1 cm.
+    """
+
+    floor, _ = pocket_energy_floor(100.0, 20.0)
+    excess = [ConePocket(100.0, 20.0, r).energy() / floor - 1.0
+              for r in (1.0e-2, 1.0e-3)]
+    assert excess[0] == pytest.approx(5.0e-8, rel=1e-3)
+    assert excess[0] / excess[1] == pytest.approx(100.0, rel=1e-6)
+
+
+@pytest.mark.parametrize("r_min", [1.0e-3, 0.1, 5.0])
+def test_cone_has_exactly_the_requested_curvature_radius(r_min):
+    """The radial curvature |A''|/A reaches 1/r_min^2 and nothing exceeds it."""
+
+    cone = ConePocket(100.0, 20.0, r_min)
+    assert cone.curvature_radius() == pytest.approx(r_min, rel=1e-6)
+    radial, tangential = cone.riemann_components()
+    assert tangential <= radial
+
+    # the inner corner reaches 1/r_min^2 by construction; so must the
+    # outer one, at the bottom of its dip
+    _, areal, _ = cone._outer_corner(10001)
+    assert np.max(cone.outer_rate / areal) * r_min ** 2 == pytest.approx(
+        1.0, rel=1e-6)
+
+
+@pytest.mark.parametrize("alpha, order", [(10.0, 80), (3.0, 10),
+                                          (1.0e3, 4)])
+def test_no_profile_beats_the_cone(alpha, order):
+    """At the same P, b and curvature radius, polynomials cost more."""
+
+    pocket = BroeckMetric(speed=C_LIGHT, alpha=alpha, order=order)
+    outer = pocket.inner_radius + pocket.thickness
+    r_c, _ = pocket.curvature_radius()
+    cone = ConePocket(pocket.pocket_proper_radius(), outer, r_c)
+    assert pocket.transition_energy_budget().net > cone.energy()
+
+
+def test_quantum_inequality_caps_the_curvature_radius():
+    """
+    Corner density -c^4 / 4 pi G r^2 against a limit ~ 1/r^4: the ratio is
+    (8 pi / 3) beta^4 (r / l_P)^2, so the check holds only below
+    sqrt(3 / 8 pi) l_P / beta^2 = 34.5 Planck lengths.
+    """
+
+    threshold = quantum_inequality_threshold()
+    assert threshold / L_PLANCK == pytest.approx(34.549, rel=1e-4)
+
+    for ratio in (0.3, 0.9, 1.1):
+        check = ConePocket(100.0, 2.0e-15,
+                           ratio * threshold).quantum_inequality()
+        assert check.margin == pytest.approx(ratio ** 2, rel=1e-6)
+        assert check.worst_speed == 0.0
+
+
+def test_best_order_of_the_polynomial():
+    """
+    n = 80 maximises r_c for alpha = 1e34 to 0.1%, the paper's claim for
+    its first configuration; for the alpha = 1e17 of eq. (7) it is n = 44.
+    """
+
+    orders = np.arange(38, 92)
+    for alpha, best, ratio in ((1.0e34, 84, 72.38), (1.0e17, 44, 37.29)):
+        ratios = curvature_radius_by_order(alpha, orders)
+        k = int(np.argmin(ratios))
+        assert orders[k] == best
+        assert ratios[k] == pytest.approx(ratio, rel=1e-3)
+
+    at_80 = curvature_radius_by_order(1.0e34, [80])[0]
+    assert at_80 == pytest.approx(72.46, rel=1e-3)
+
+
+def test_cone_rejects_impossible_pockets():
+    with pytest.raises(ValueError):
+        ConePocket(10.0, 20.0, 0.1)
+    with pytest.raises(ValueError):
+        ConePocket(100.0, 20.0, 15.0)

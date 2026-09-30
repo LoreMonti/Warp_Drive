@@ -383,10 +383,14 @@ def quantum_inequality_check(metric, beta=0.1, n_points=400000,
     """
 
     r = metric._transition_grid(n_points)
-    eps = metric._conformal_density(r)
-    radial, _ = metric.pocket_pressures(r)
     r_c, _ = metric.curvature_radius(n_points)
+    return _quantum_inequality(r, metric._conformal_density(r),
+                               metric.pocket_pressures(r)[0], r_c, beta,
+                               n_speeds)
 
+
+def _quantum_inequality(position, eps, radial, r_c, beta, n_speeds):
+    # eps and radial in J m^-3 on a grid of positions [m]
     k = int(np.argmin(eps))
     limit = -3.0 * HBAR * C_LIGHT / (32.0 * math.pi ** 2
                                      * (beta * r_c) ** 4) / C_LIGHT ** 2
@@ -398,9 +402,175 @@ def quantum_inequality_check(metric, beta=0.1, n_points=400000,
 
     return QuantumInequalityCheck(
         peak_density=float(eps[k] / C_LIGHT ** 2),
-        peak_radius=float(r[k]),
-        curvature_radius=r_c,
+        peak_radius=float(position[k]),
+        curvature_radius=float(r_c),
         limit=float(limit),
         worst_speed=float(speeds[j]),
         margin=float(worst[j] / C_LIGHT ** 2 / abs(limit)),
     )
+
+
+def quantum_inequality_threshold(beta=0.1):
+    """
+    Largest curvature radius at which a pocket whose density is set by its
+    curvature, eps ~ -c^4 / (4 pi G r_c^2) as at the corners of
+    `ConePocket`, can satisfy the quantum inequality [m]:
+
+        ratio = (8 pi / 3) beta^4 (r_c / l_P)^2 <= 1
+        =>  r_c <= sqrt(3 / 8 pi) l_P / beta^2,
+
+    35 Planck lengths for beta = 0.1. The density grows as 1/r_c^2 and the
+    limit as 1/r_c^4, so the inequality caps the curvature radius instead
+    of bounding it from below: the check passes only for geometries
+    curved on a few tens of Planck lengths. The same reasoning bounds the
+    shift wall of Pfenning and Ford to ~1e2 Planck lengths.
+    """
+
+    return math.sqrt(3.0 / (8.0 * math.pi)) * L_PLANCK / beta ** 2
+
+
+@dataclass
+class ConePocket:
+    """
+    The cheapest static pocket with curvature radius at least r_min, in
+    the areal form ds^2 = dl^2 + A(l)^2 dOmega^2.
+
+    For any static spherical pocket with A = P and A' = 1 on the inside
+    and A = b and A' = 1 on the outside, integrating the density
+    eps = (c^4/8 pi G)(1 - A'^2 - 2 A A'')/A^2 over 4 pi A^2 dl by parts
+    gives
+
+        E_tot = (c^4 / 2G) \\int (1 + A'^2) dl + (c^4 / G)(P - b)
+              >= (2 c^4 / G)(P - A_min) >= (2 c^4 / G)(P - b),
+
+    using 1 + A'^2 >= 2|A'|: the floor of `pocket_energy_floor` for
+    every spherical pocket, not only the conformally flat ones. It is
+    approached by a cone, A' = -1 from A = P down to A = b, where the
+    density vanishes; all the energy sits at its two corners.
+
+    Here the corners are rounded with |A''| constant, set so that the
+    radial curvature |A''|/A reaches 1/r_min^2 exactly at the smallest A
+    of each corner; A' runs linearly from 1 to -1 over L_1 = 2 / k_1 and
+    back over L_2 = 2 / k_2. Each ramp adds (2 c^4 / 3G) L_i, so
+
+        E_tot = (2 c^4 / G)(P - b) + (2 c^4 / 3G)(L_1 + L_2).
+
+    The inner corner carries positive density, the outer one the negative
+    peak, close to -c^4 / (4 pi G r_min^2).
+
+    Parameters
+    ----------
+    pocket_radius  : proper radius P of the pocket [m]
+    outer_radius   : areal radius b outside the transition [m]
+    min_curvature  : smallest curvature radius r_min allowed [m]
+    """
+
+    pocket_radius: float
+    outer_radius: float
+    min_curvature: float
+
+    def __post_init__(self):
+        P, b, r = self.pocket_radius, self.outer_radius, self.min_curvature
+        if not P > b > 0.0:
+            raise ValueError("need P > b > 0: a pocket larger inside")
+        if not 0.0 < r < b / 2.0:
+            raise ValueError("need 0 < r_min < b / 2 to round the corners")
+
+    @property
+    def inner_rate(self):
+        """k_1 = |A''| on the inner corner, where A >= P [m^-1]."""
+
+        return self.pocket_radius / self.min_curvature ** 2
+
+    @property
+    def outer_rate(self):
+        """
+        k_2 on the outer corner, where A dips to b - L_2/4 = b - 1/(2 k_2):
+        the root of k_2^2 r^2 - b k_2 + 1/2 = 0 closest to b / r^2.
+        """
+
+        b, r = self.outer_radius, self.min_curvature
+        return (b + math.sqrt(b ** 2 - 2.0 * r ** 2)) / (2.0 * r ** 2)
+
+    def ramp_lengths(self):
+        """Proper lengths L_1, L_2 of the two rounded corners [m]."""
+
+        return 2.0 / self.inner_rate, 2.0 / self.outer_rate
+
+    def energy(self):
+        """Net E_tot of the transition, in closed form [J]."""
+
+        first, second = self.ramp_lengths()
+        return 2.0 * C_LIGHT ** 4 / G * (
+            self.pocket_radius - self.outer_radius
+            + (first + second) / 3.0)
+
+    def _outer_corner(self, n_points):
+        # A and A' across the outer corner, s the distance into it
+        k, b = self.outer_rate, self.outer_radius
+        s = (np.arange(n_points) + 0.5) / n_points * (2.0 / k)
+        return s, b - s + 0.5 * k * s ** 2, -1.0 + k * s
+
+    def riemann_components(self, n_points=10001):
+        """
+        Largest |K_1| = |A''|/A and |K_2| = |1 - A'^2|/A^2 over both
+        corners; zero along the cone and outside. [m^-2]
+        """
+
+        _, A, slope = self._outer_corner(n_points)
+        radial = max(self.inner_rate / self.pocket_radius,
+                     float(np.max(self.outer_rate / A)))
+        tangential = max(1.0 / self.pocket_radius ** 2,
+                         float(np.max((1.0 - slope ** 2) / A ** 2)))
+        return radial, tangential
+
+    def curvature_radius(self, n_points=10001):
+        """1 / sqrt(max |R|): r_min up to the sampling of the corner [m]."""
+
+        return 1.0 / math.sqrt(max(self.riemann_components(n_points)))
+
+    def densities(self, n_points=10001):
+        """
+        eps and p_r across the outer corner, the only place where the
+        density is negative [J m^-3]:
+
+            eps = (c^4/8 pi G)(1 - A'^2 - 2 A A'')/A^2,
+            p_r = (c^4/8 pi G)(A'^2 - 1)/A^2.
+        """
+
+        s, A, slope = self._outer_corner(n_points)
+        scale = C_LIGHT ** 4 / (8.0 * math.pi * G)
+        eps = scale * (1.0 - slope ** 2 - 2.0 * A * self.outer_rate) / A ** 2
+        radial = scale * (slope ** 2 - 1.0) / A ** 2
+        return s, eps, radial
+
+    def quantum_inequality(self, beta=0.1, n_points=10001, n_speeds=1000):
+        """The check of `quantum_inequality_check`, on the outer corner."""
+
+        s, eps, radial = self.densities(n_points)
+        return _quantum_inequality(s, eps, radial,
+                                   self.curvature_radius(n_points), beta,
+                                   n_speeds)
+
+
+def curvature_radius_by_order(alpha, orders, n_points=200000):
+    """
+    D~ / r_c of Van Den Broeck's polynomial profile for each order n, at
+    fixed alpha. The ratio depends on alpha and n alone, not on the
+    lengths, so it is computed with R~ = D~ = 1 m.
+
+    The 1999 paper says n = 80 gives the largest r_c. That holds for
+    alpha = 1e34, the configuration of its first four arXiv versions,
+    whose optimum n = 84 is only 0.1% smoother; for the alpha = 1e17 of
+    the published eq. (7) the best order is n = 44.
+
+    Returns an array of D~ / r_c, smaller meaning smoother.
+    """
+
+    ratios = []
+    for order in orders:
+        metric = BroeckMetric(speed=C_LIGHT, radius=3.0, sigma=1.0e3,
+                              inner_radius=1.0, thickness=1.0,
+                              alpha=alpha, order=int(order))
+        ratios.append(1.0 / metric.curvature_radius(n_points)[0])
+    return np.array(ratios)

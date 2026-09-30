@@ -280,6 +280,27 @@ class BroeckMetric(AlcubierreMetric):
         return (np.where(r > 0.0, radial, 0.0),
                 np.where(r > 0.0, tangential, 0.0))
 
+    def areal_energy(self, n_points=200000):
+        """
+        Net E_tot of the transition region from the areal form,
+
+            E_tot = (c^4 / 2G) \\int (1 + (dA/dl)^2) dl + (c^4 / G)(P - b),
+
+        with A = B r, dl = B dr, P = (1 + alpha) R~ and b = R~ + D~: the
+        integration by parts behind `diagnostics.ConePocket`, which holds
+        for any static spherical pocket. It must match
+        `transition_energy_budget().net`. [J]
+        """
+
+        step = self.thickness / n_points
+        r = self.inner_radius + (np.arange(n_points) + 0.5) * step
+        _, B, first, _ = self._profiles(r)
+        slope = (first * r + B) / B
+        outer = self.inner_radius + self.thickness
+        return (C_LIGHT ** 4 / (2.0 * G) * float(np.sum((1.0 + slope ** 2)
+                                                        * B)) * step
+                + C_LIGHT ** 4 / G * (self.pocket_proper_radius() - outer))
+
     def _transition_grid(self, n_points):
         # uniform in w = (R~ + D~ - r) / D~, open at both edges
         w = (np.arange(n_points) + 0.5) / n_points

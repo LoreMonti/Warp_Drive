@@ -6,6 +6,9 @@
 
 from .constants import C_LIGHT, D_PROXIMA, G, LY, M_SUN, YEAR
 from .diagnostics import (
+    ConePocket,
+    curvature_radius_by_order,
+    quantum_inequality_threshold,
     MissionProfile,
     NeckScaling,
     energy_scaling_table,
@@ -57,6 +60,9 @@ __all__ = [
     "pocket_energy_floor",
     "QuantumInequalityCheck",
     "quantum_inequality_check",
+    "quantum_inequality_threshold",
+    "ConePocket",
+    "curvature_radius_by_order",
     "relativistic_rocket",
     "integrate_tracers",
     "RayBundle",
