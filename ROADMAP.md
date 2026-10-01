@@ -441,9 +441,7 @@ below it.
 
 ## 4. Hawking radiation through the throat
 
-Done, except the thermal and directional weighting listed below. Next:
-section 5, starting from what is already known about warp-drive analogues in
-Bose–Einstein condensates.
+Done, except the thermal and directional weighting listed below.
 
 The question: does the pocket shield the crew from the Hawking radiation of
 the warp horizon, and by how much?
@@ -523,52 +521,63 @@ until the trapped modes tunnel in, and none at all at the centre.
 
 ## 5. An acoustic Van Den Broeck bubble
 
-The question: does a pocket of slow sound filter analogue Hawking radiation
-measurably, and with what signature in the correlation spectrum?
+**Next.** The question, reframed by section 4: the pocket does not filter a
+stationary flux, it is a cavity. Does an acoustic pocket, a region of slow
+sound behind a throat, leave a measurable Fabry–Pérot comb in the
+density–density correlation spectrum of a Bose–Einstein condensate?
 
-Literature:
+5a — The building blocks, known and cited, not to be re-derived:
 
-- [ ] Barceló, Liberati and Visser, *Analogue gravity* (Living Reviews)
-- [ ] Finazzi et al. (2012) on warp drives in Bose–Einstein condensates
-- [ ] Steinhauer and collaborators (2016, 2019, 2021) on the measured analogue
-      Hawking radiation and its correlation spectrum
-- [ ] Greybody factors in acoustic black holes, and condensates with a
-      position-dependent speed of sound
-- [ ] Any acoustic pocket or slow-sound region used as a filter, to confirm
-      the question is open
+- [x] Acoustic warp drive: Finazzi's thesis (2012, ch. 5) and Barceló,
+      Finazzi and Liberati (2010), a 1D flow with a black and a white sonic
+      horizon and a subsonic interior; uniform $c_s$, no pocket, and the
+      observer inside left as future work
+- [x] Engineered spatial curvature in 2D condensates: Viermann et al. (Nature
+      2022), Tolosa-Simeón et al. (PRA 2022), the phonon Maxwell fish-eye lens
+      of Duchêne et al. (NJP 2026)
+- [x] An acoustic throat: Vaidya and Kruczenski (2024), funnel geometries
+      from position-dependent couplings in the 2D Gross–Pitaevskii equation
+- [x] Cavity resonances with horizons: black-hole lasers (Corley and
+      Jacobson; Finazzi and Parentani; de Nova, Finazzi and Carusotto 2016)
+- [x] Measured analogue Hawking radiation and its correlations: Steinhauer
+      (2016), Muñoz de Nova et al. (2019), Kolobov et al. (2021)
+- [ ] One of them reproduced as a validation test of the solver, for example
+      wave-packet propagation on a known curvature as in Viermann et al.
 
-Theory:
+5b — Feasibility first, since it can stop the section:
 
-- [ ] Acoustic metric with flow $\mathbf v(\mathbf x)$ and speed of sound
-      $c_s(\mathbf x)$, and its conformal relation to the Van Den Broeck
-      metric through $c_s = c/B$
-- [ ] The phonon wave equation: rays coincide with the relativistic ones, but
-      the conformal factor changes the effective potential, so the greybody
-      factor differs from section 4 and has to be computed on its own
-- [ ] Realistic condensate parameters: speed of sound, healing length and the
-      frequency above which Bogoliubov dispersion breaks the analogy, compared
-      with the frequencies that cross the throat
-- [ ] Realisable geometry: a one- or two-dimensional pocket first, the density
-      profile that produces it and the transonic flow that makes the horizon
-- [ ] Decision point: if no realistic configuration exists, the paper rests on
-      section 4 alone
+- [ ] Realistic parameters from the experiments: speed of sound, healing
+      length $\xi$, condensate size, flow speed, Hawking temperature
+- [ ] Comb spacing $\Delta\omega \simeq \pi c_s/P$ and the widths
+      $\propto \Gamma_\ell$ against the Bogoliubov frequency where the
+      dispersion breaks the analogy, and against the experimental resolution
+- [ ] $\Xi = \kappa A_\mathrm{min}/2\pi$ for realistic pockets: the wave
+      regime $\Xi \sim 1$ is where the comb is visible
+- [ ] **Decision point:** if no realistic configuration keeps the comb below
+      the dispersive cutoff and above the resolution, the paper rests on
+      sections 3 and 4
 
-Observable:
+5c — The new result, if 5b passes:
 
-- [ ] Density–density correlation spectrum with and without the pocket, and
-      the signature of the filtering
+- [ ] Acoustic metric with flow $\mathbf v$ and $c_s = c/B$, and its conformal
+      relation to the Van Den Broeck metric
+- [ ] Phonon wave equation in 2+1, where the scalar is not conformally
+      invariant: the extra conformal-factor term in the potential, and the
+      cavity comb computed with it (`waves.py` extended to 2D partial waves)
+- [ ] The density profile and transonic flow that produce the pocket and the
+      horizon
+- [ ] Density–density correlation spectrum with and without the pocket: the
+      signature of the comb
 
-Machine learning (optional):
+5d — Optional, only if 5c holds:
 
-- [ ] Simulation-based inference of $\kappa$ and $R_\mathrm{throat}$ from
-      noisy correlation spectra, with normalising flows trained on the forward
-      model
+- [ ] Simulation-based inference of $\kappa$, $A_\mathrm{min}$ and $P$ from
+      noisy correlation spectra, with normalising flows on the forward model
 
 Write-up:
 
-- [ ] One paper covering sections 4 and 5: the same ray optics, two greybody
-      factors, and the laboratory prediction, opened by the results of
-      section 3
+- [ ] One paper: section 3 as the opening, section 4 as the result for
+      gravity, section 5 as the laboratory prediction
 
 The acoustic line element is conformal to the Van Den Broeck one,
 
