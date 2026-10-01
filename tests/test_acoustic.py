@@ -105,3 +105,91 @@ def test_centre_curvature_and_conformal_factor(disc):
     assert disc.conformal_factor(r) == pytest.approx(
         disc.density / disc.sound_speed * math.sqrt(1 - (r / disc.radius)
                                                     ** 2))
+
+
+# --- The acoustic pocket as a cavity (section 5c) ---
+from warpdrive import BroeckMetric                          # noqa: E402
+from warpdrive.acoustic import (AcousticPocket,             # noqa: E402
+                                cylindrical_riccati)
+from warpdrive.constants import C_LIGHT                     # noqa: E402
+import mpmath as mp                                         # noqa: E402
+
+
+def _bubble(inner, thickness, ratio, order=80):
+    """A pocket with B = ratio inside; the shift wall is kept far away."""
+
+    return BroeckMetric(speed=10.0 * C_LIGHT, radius=20.0 * (inner
+                                                              + thickness),
+                        sigma=10.0, inner_radius=inner, thickness=thickness,
+                        alpha=ratio - 1.0, order=order)
+
+
+def test_cylindrical_riccati_against_mpmath():
+    x = np.array([0.3, 2.0, 17.0, 60.0])
+    j, y, dj, dy = cylindrical_riccati(30, x)
+    for m in (0, 1, 5, 20, 30):
+        for i, xi in enumerate(x):
+            scale = mp.sqrt(mp.pi * xi / 2)
+            exact_j = float(scale * mp.besselj(m, xi))
+            exact_y = float(scale * mp.bessely(m, xi))
+            assert j[m, i] == pytest.approx(exact_j, rel=1e-10, abs=1e-280)
+            assert y[m, i] == pytest.approx(exact_y, rel=1e-10)
+    np.testing.assert_allclose(j * dy - y * dj, 1.0, rtol=1e-10)
+
+
+@pytest.mark.parametrize("nu", [0.0, 1.0])
+def test_flat_condensate_has_no_pocket(nu):
+    flat = AcousticPocket(_bubble(10.0, 10.0, 1.0), 1.0, nu, 2000)
+    a, c, _, _ = flat.transfer([0, 3, 10], [0.3, 1.0, 3.0])
+    np.testing.assert_allclose(a, 1.0, atol=1e-7)
+    np.testing.assert_allclose(c, 0.0, atol=1e-7)
+
+
+@pytest.mark.parametrize("nu", [0.0, 1.0])
+def test_zero_frequency_s_wave_is_sqrt_q(nu):
+    """
+    At w = 0 and m = 0, u'' = ((sqrt q)''/sqrt q) u is solved by
+    u = sqrt(q), q = r n / c_s: pins the density term of the potential,
+    the one a 3+1 conformal field would not have.
+    """
+
+    pocket = AcousticPocket(_bubble(20.0, 3.0, 2.0), 1.0, nu, 4000)
+    a, b, eps = pocket.inner, pocket.outer, 1.0e-6
+    sq = pocket.sqrt_q
+    u, du = pocket._carry([0], [1.0e-9], np.array([[sq(a)]]),
+                          np.array([[pocket.c_in * (sq(a) - sq(a - eps))
+                                     / eps]]))
+    assert u[0, 0] == pytest.approx(sq(b), rel=1e-6)
+    assert du[0, 0] == pytest.approx(pocket.c_out * (sq(b + eps) - sq(b))
+                                     / eps, rel=1e-4)
+
+
+@pytest.mark.parametrize("nu", [0.0, 1.0])
+def test_sharp_edge_reflects_by_impedance(nu):
+    """
+    A step thin against the wavelength and a pocket large against it
+    transmit 1 - ((B - 1)/(B + 1))^2, with impedance n k = n w / c_s:
+    the ratio is 1/B for uniform coupling and B for uniform density,
+    the same |r| either way.
+    """
+
+    pocket = AcousticPocket(_bubble(200.0, 0.5, 2.0), 1.0, nu, 2000)
+    gamma = pocket.transmission([0], [0.25])[0, 0]
+    assert gamma == pytest.approx(1.0 - (1.0 / 3.0) ** 2, rel=1e-2)
+
+
+def test_flux_is_conserved_and_the_cavity_fills_on_average():
+    pocket = AcousticPocket(_bubble(20.0, 3.0, 2.0), 1.0, 1.0, 3000)
+    incoming, outgoing = pocket.crossing([0, 4], [0.1, 0.2])
+    np.testing.assert_allclose(np.abs(incoming) ** 2,
+                               np.abs(outgoing) ** 2 + 1.0, rtol=1e-7)
+
+    omegas = np.linspace(0.2, 0.6, 4000)
+    weight = pocket.interior_weight([0], omegas)[0]
+    assert weight.mean() == pytest.approx(1.0, abs=0.05)
+    # a low-finesse comb whose contrast is the Fabry-Perot one,
+    # ((1 + sqrt(1 - Gamma)) / (1 - sqrt(1 - Gamma)))^2 = 4 for Gamma = 8/9
+    gamma = pocket.transmission([0], [0.4])[0, 0]
+    root = math.sqrt(1.0 - gamma)
+    expected = ((1.0 + root) / (1.0 - root)) ** 2
+    assert weight.max() / weight.min() == pytest.approx(expected, rel=0.05)

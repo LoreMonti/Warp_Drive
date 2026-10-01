@@ -154,3 +154,225 @@ class ThomasFermiDisc:
                                          atol=1.0e-14 * self.radius,
                                          first_step=duration * 1.0e-4)
         return state[:2].T, state[2:].T
+
+
+# --- Waves: the acoustic pocket as a cavity ---
+def cylindrical_riccati(mmax, x):
+    """
+    hat j_m(x) = sqrt(pi x / 2) J_m(x) and hat y_m(x) = sqrt(pi x / 2)
+    Y_m(x), with their x-derivatives, for m = 0 .. mmax and x > 0: the
+    free radial solutions u of a 2D wave in the Liouville form, with
+    Wronskian hat j hat y' - hat y hat j' = 1.
+
+    J_m by downward recurrence normalised with J_0 + 2 sum J_2k = 1
+    (Miller), Y_m upward from Y_0, Y_1 (mpmath), stable for both.
+
+    Returns (j, y, dj, dy), each of shape (mmax + 1,) + x.shape.
+    """
+
+    import mpmath
+
+    x = np.asarray(x, dtype=float)
+    if np.any(x <= 0.0):
+        raise ValueError("Bessel functions here need x > 0")
+    flat = x.ravel()
+
+    start = 2 * ((mmax + int(np.max(flat)) + 40) // 2) + 2
+    J = np.zeros((mmax + 1, flat.size))
+    norm = np.zeros(flat.size)
+    above, current = np.zeros(flat.size), np.full(flat.size, 1.0e-300)
+    for m in range(start, 0, -1):
+        above, current = current, 2.0 * m / flat * current - above
+        index = m - 1
+        if index <= mmax:
+            J[index] = current
+        norm += current * (2.0 if index % 2 == 0 and index > 0 else
+                           1.0 if index == 0 else 0.0)
+        big = np.abs(current) > 1.0e250
+        if np.any(big):
+            J[:, big] *= 1.0e-250
+            norm[big] *= 1.0e-250
+            above[big] *= 1.0e-250
+            current[big] *= 1.0e-250
+    J /= norm
+
+    Y = np.empty((max(mmax, 1) + 1, flat.size))
+    Y[0] = [float(mpmath.bessely(0, v)) for v in flat]
+    Y[1] = [float(mpmath.bessely(1, v)) for v in flat]
+    with np.errstate(over="ignore", invalid="ignore"):
+        for m in range(1, mmax):
+            Y[m + 1] = 2.0 * m / flat * Y[m] - Y[m - 1]
+    Y = Y[:mmax + 1]
+
+    # Z_m' = Z_{m-1} - (m/x) Z_m, with Z_{-1} = -Z_1
+    ms = np.arange(mmax + 1)[:, None]
+    Jlow = np.vstack([-J[1:2] if mmax else -_j1(flat), J[:-1]])
+    Ylow = np.vstack([-Y[1:2] if mmax else -_y1(flat), Y[:-1]])
+    with np.errstate(over="ignore", invalid="ignore"):
+        dJ = Jlow - ms / flat * J
+        dY = Ylow - ms / flat * Y
+        scale = np.sqrt(0.5 * np.pi * flat)
+        dscale = 0.5 * scale / flat
+        out = (scale * J, scale * Y, dscale * J + scale * dJ,
+               dscale * Y + scale * dY)
+    shape = (mmax + 1,) + x.shape
+    return tuple(f.reshape(shape) for f in out)
+
+
+def _j1(x):
+    import mpmath
+    return np.array([[float(mpmath.besselj(1, v)) for v in x]])
+
+
+def _y1(x):
+    import mpmath
+    return np.array([[float(mpmath.bessely(1, v)) for v in x]])
+
+
+class AcousticPocket:
+    """
+    An acoustic Van Den Broeck pocket in a 2D condensate at rest: the
+    speed of sound follows the conformal factor of section 1,
+
+        c_s(r) = c_out / B(r),   B = 1 + alpha inside r < R~, 1 beyond
+        R~ + D~, Van Den Broeck's polynomial in between,
+
+    so the optical areal radius A = r / c_s = B r / c_out is the areal
+    radius of section 3 in units of time, and rays coincide with light
+    rays. The density is n proportional to B^(-2 nu): nu = 1 for a
+    uniform coupling (c_s^2 = g n / m, slow sound from low density),
+    nu = 0 for uniform density and a coupling tuned in space.
+
+    For phi = exp(-i w t) exp(i m varphi) R(r), with optical distance
+    ds = dr / c_s and R = u / sqrt(q), q = r n / c_s = A n,
+
+        u'' + [w^2 - m^2 / A^2 - (sqrt q)'' / sqrt q] u = 0,
+
+    primes in s. The density enters through q: the conformal factor
+    n / c_s of the 2+1 acoustic metric, which does not drop out of the
+    wave equation as it would in 3+1 for a conformal field.
+
+    Parameters
+    ----------
+    metric  : BroeckMetric giving R~, D~, alpha and the order n of B
+    c_out   : speed of sound outside the pocket [m s^-1]
+    nu      : density exponent, 1 (uniform coupling) or 0 (uniform density)
+    n_steps : RK4 steps across the transition
+    """
+
+    def __init__(self, metric, c_out, nu=1.0, n_steps=4000):
+        self.metric = metric
+        self.c_out = float(c_out)
+        self.nu = float(nu)
+        self.n_steps = int(n_steps)
+        self.inner = metric.inner_radius
+        self.outer = metric.inner_radius + metric.thickness
+        self.c_in = self.c_out / (1.0 + metric.alpha)
+
+        h = metric.thickness / self.n_steps
+        r = self.inner + 0.5 * h * np.arange(2 * self.n_steps + 1)
+        # B'' jumps at R~: take the limit from the transition side
+        r[0] += 1.0e-9 * h
+        _, B, B1, B2 = metric._profiles(r)
+        c = self.c_out / B
+        a, b = B1 / B, B2 / B
+        # log-derivatives of c and n, from c = c_out / B and n ~ B^(-2 nu)
+        c_r, c_rr = -a, 2.0 * a ** 2 - b
+        n_r = -2.0 * self.nu * a
+        n_rr = (2.0 * self.nu * (2.0 * self.nu + 1.0) * a ** 2
+                - 2.0 * self.nu * b)
+        # lambda = ln sqrt(q) = (ln r + ln n - ln c) / 2
+        lam_r = 0.5 * (1.0 / r + n_r - c_r)
+        lam_rr = 0.5 * (-1.0 / r ** 2 + n_rr - n_r ** 2 - c_rr + c_r ** 2)
+        self._h = h
+        self._c = c
+        self._areal = r / c
+        self._curvature = c ** 2 * (lam_rr + lam_r ** 2) + c ** 2 * c_r * lam_r
+
+    def sqrt_q(self, r):
+        """sqrt(q) up to a constant: q = r n / c_s with n ~ B^(-2 nu)."""
+
+        B = self.metric.conformal_profile(r)
+        return np.sqrt(np.asarray(r) * B ** (1.0 - 2.0 * self.nu))
+
+    def throat(self):
+        """Optical areal radius A_min = min (B r) / c_out [s]."""
+
+        _, areal = self.metric.throat()
+        return areal / self.c_out
+
+    def round_trip(self, ms, omegas):
+        """Time to cross the pocket to the turning point and back [s]."""
+
+        ms = np.asarray(ms, dtype=float)[:, None]
+        omegas = np.asarray(omegas, dtype=float)[None, :]
+        edge = self.inner / self.c_in
+        turning = np.minimum(ms / omegas, edge)
+        return 2.0 * np.sqrt(edge ** 2 - turning ** 2)
+
+    def _carry(self, ms, omegas, u, du):
+        lam = (np.asarray(ms, dtype=float) ** 2)[:, None]
+        w2 = (np.asarray(omegas) ** 2)[None, :]
+        h = self._h
+
+        def rhs(i, u, du):
+            potential = lam / self._areal[i] ** 2 + self._curvature[i]
+            return du / self._c[i], (potential - w2) * u / self._c[i]
+
+        for n in range(self.n_steps):
+            i = 2 * n
+            a1, b1 = rhs(i, u, du)
+            a2, b2 = rhs(i + 1, u + 0.5 * h * a1, du + 0.5 * h * b1)
+            a3, b3 = rhs(i + 1, u + 0.5 * h * a2, du + 0.5 * h * b2)
+            a4, b4 = rhs(i + 2, u + h * a3, du + h * b3)
+            u = u + h / 6.0 * (a1 + 2.0 * a2 + 2.0 * a3 + a4)
+            du = du + h / 6.0 * (b1 + 2.0 * b2 + 2.0 * b3 + b4)
+        return u, du
+
+    def transfer(self, ms, omegas):
+        """
+        Exterior coefficients (a, c) of the interior solutions hat j_m and
+        hat y_m of w s, s = r / c_in, written as a hat j_m(w A) +
+        c hat y_m(w A) outside. Returns (a_j, c_j, a_y, c_y).
+        """
+
+        ms = np.asarray(ms, dtype=int)
+        omegas = np.asarray(omegas, dtype=float)
+        mmax = int(ms.max())
+        j, y, dj, dy = cylindrical_riccati(mmax, omegas * self.inner
+                                           / self.c_in)
+        u0 = np.concatenate([j[ms], y[ms]])
+        du0 = np.concatenate([omegas * dj[ms], omegas * dy[ms]])
+        with np.errstate(over="ignore", invalid="ignore"):
+            u, du = self._carry(np.concatenate([ms, ms]), omegas, u0, du0)
+            J, Y, dJ, dY = cylindrical_riccati(mmax, omegas * self.outer
+                                               / self.c_out)
+            J, Y, dJ, dY = (np.concatenate([f[ms], f[ms]])
+                            for f in (J, Y, dJ, dY))
+            a = u * dY - Y * du / omegas
+            c = J * du / omegas - u * dJ
+        n = len(ms)
+        return a[:n], c[:n], a[n:], c[n:]
+
+    def interior_weight(self, ms, omegas):
+        """1 / (a_j^2 + c_j^2): intensity inside per unit incident one."""
+
+        a, c, _, _ = self.transfer(ms, omegas)
+        with np.errstate(over="ignore", invalid="ignore"):
+            weight = 1.0 / (a ** 2 + c ** 2)
+        return np.nan_to_num(weight, nan=0.0, posinf=0.0)
+
+    def crossing(self, ms, omegas):
+        """(I, O) for a wave entering the pocket and never coming back."""
+
+        a_j, c_j, a_y, c_y = self.transfer(ms, omegas)
+        alpha, gamma = a_j - 1j * a_y, c_j - 1j * c_y
+        return 0.5 * (alpha + 1j * gamma), 0.5 * (alpha - 1j * gamma)
+
+    def transmission(self, ms, omegas):
+        """Single-pass transmission Gamma_m of the transition region."""
+
+        incoming, _ = self.crossing(ms, omegas)
+        with np.errstate(over="ignore", invalid="ignore"):
+            gamma = 1.0 / np.abs(incoming) ** 2
+        return np.nan_to_num(gamma, nan=0.0, posinf=0.0)
