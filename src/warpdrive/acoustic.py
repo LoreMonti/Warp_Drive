@@ -258,10 +258,15 @@ class AcousticPocket:
     c_out   : speed of sound outside the pocket [m s^-1]
     nu      : density exponent, 1 (uniform coupling) or 0 (uniform density)
     n_steps : RK4 steps across the transition
+    healing : healing length xi_out = hbar / m c_out outside [m]; if given,
+              the Bogoliubov dispersion is included in the local-index
+              approximation (see `bogoliubov_wavenumber`), with
+              xi = xi_out B inside, since xi scales as 1 / c_s
     """
 
-    def __init__(self, metric, c_out, nu=1.0, n_steps=4000):
+    def __init__(self, metric, c_out, nu=1.0, n_steps=4000, healing=None):
         self.metric = metric
+        self.healing = None if healing is None else float(healing)
         self.c_out = float(c_out)
         self.nu = float(nu)
         self.n_steps = int(n_steps)
@@ -286,8 +291,40 @@ class AcousticPocket:
         lam_rr = 0.5 * (-1.0 / r ** 2 + n_rr - n_r ** 2 - c_rr + c_r ** 2)
         self._h = h
         self._c = c
+        self._xi = None if self.healing is None else self.healing * B
         self._areal = r / c
         self._curvature = c ** 2 * (lam_rr + lam_r ** 2) + c ** 2 * c_r * lam_r
+
+    def bogoliubov_wavenumber(self, omegas, c, xi):
+        """
+        Wavenumber of a Bogoliubov phonon of frequency w where the speed of
+        sound is c and the healing length xi,
+
+            w^2 = c^2 k^2 (1 + k^2 xi^2 / 4)
+            =>  k^2 = (2 / xi^2) (sqrt(1 + w^2 xi^2 / c^2) - 1),
+
+        w / c for a long wavelength and sqrt(2 w / c xi) for a short one.
+        Without a healing length it is w / c. [m^-1]
+        """
+
+        omegas = np.asarray(omegas, dtype=float)
+        if xi is None:
+            return omegas / c
+        # sqrt(1 + x^2) - 1 = x^2 / (sqrt(1 + x^2) + 1), without the
+        # cancellation that loses digits for long waves
+        x2 = (omegas * xi / c) ** 2
+        return np.sqrt(2.0 / xi ** 2 * x2 / (np.sqrt(1.0 + x2) + 1.0))
+
+    def _effective(self, omegas):
+        """c k_B inside and outside: the frequency the optical wave
+        equation sees, equal to w without dispersion."""
+
+        xi_in = None if self.healing is None else (
+            self.healing * (1.0 + self.metric.alpha))
+        return (self.c_in * self.bogoliubov_wavenumber(omegas, self.c_in,
+                                                       xi_in),
+                self.c_out * self.bogoliubov_wavenumber(omegas, self.c_out,
+                                                        self.healing))
 
     def sqrt_q(self, r):
         """sqrt(q) up to a constant: q = r n / c_s with n ~ B^(-2 nu)."""
@@ -302,22 +339,40 @@ class AcousticPocket:
         return areal / self.c_out
 
     def round_trip(self, ms, omegas):
-        """Time to cross the pocket to the turning point and back [s]."""
+        """
+        Time to cross the pocket to the turning point and back [s]: the
+        chord m / k_B of the flat pocket, run at the group velocity
+        v_g = c (1 + k^2 xi^2 / 2) / sqrt(1 + k^2 xi^2 / 4), which is c
+        without dispersion.
+        """
 
         ms = np.asarray(ms, dtype=float)[:, None]
-        omegas = np.asarray(omegas, dtype=float)[None, :]
+        inside, _ = self._effective(omegas)
+        inside = np.asarray(inside, dtype=float)[None, :]
         edge = self.inner / self.c_in
-        turning = np.minimum(ms / omegas, edge)
-        return 2.0 * np.sqrt(edge ** 2 - turning ** 2)
+        turning = np.minimum(ms / inside, edge)
+        chord = 2.0 * np.sqrt(edge ** 2 - turning ** 2)
+        if self.healing is None:
+            return chord
+        k_xi = inside / self.c_in * self.healing * (1.0 + self.metric.alpha)
+        group = (1.0 + 0.5 * k_xi ** 2) / np.sqrt(1.0 + 0.25 * k_xi ** 2)
+        return chord / group
 
     def _carry(self, ms, omegas, u, du):
         lam = (np.asarray(ms, dtype=float) ** 2)[:, None]
-        w2 = (np.asarray(omegas) ** 2)[None, :]
+        omegas = np.asarray(omegas, dtype=float)[None, :]
         h = self._h
+
+        def w2(i):
+            # the local-index Bogoliubov frequency, w itself without xi
+            if self._xi is None:
+                return omegas ** 2
+            return (self._c[i] * self.bogoliubov_wavenumber(
+                omegas, self._c[i], self._xi[i])) ** 2
 
         def rhs(i, u, du):
             potential = lam / self._areal[i] ** 2 + self._curvature[i]
-            return du / self._c[i], (potential - w2) * u / self._c[i]
+            return du / self._c[i], (potential - w2(i)) * u / self._c[i]
 
         for n in range(self.n_steps):
             i = 2 * n
@@ -339,18 +394,19 @@ class AcousticPocket:
         ms = np.asarray(ms, dtype=int)
         omegas = np.asarray(omegas, dtype=float)
         mmax = int(ms.max())
-        j, y, dj, dy = cylindrical_riccati(mmax, omegas * self.inner
+        inside, outside = self._effective(omegas)
+        j, y, dj, dy = cylindrical_riccati(mmax, inside * self.inner
                                            / self.c_in)
         u0 = np.concatenate([j[ms], y[ms]])
-        du0 = np.concatenate([omegas * dj[ms], omegas * dy[ms]])
+        du0 = np.concatenate([inside * dj[ms], inside * dy[ms]])
         with np.errstate(over="ignore", invalid="ignore"):
             u, du = self._carry(np.concatenate([ms, ms]), omegas, u0, du0)
-            J, Y, dJ, dY = cylindrical_riccati(mmax, omegas * self.outer
+            J, Y, dJ, dY = cylindrical_riccati(mmax, outside * self.outer
                                                / self.c_out)
             J, Y, dJ, dY = (np.concatenate([f[ms], f[ms]])
                             for f in (J, Y, dJ, dY))
-            a = u * dY - Y * du / omegas
-            c = J * du / omegas - u * dJ
+            a = u * dY - Y * du / outside
+            c = J * du / outside - u * dJ
         n = len(ms)
         return a[:n], c[:n], a[n:], c[n:]
 
@@ -370,11 +426,17 @@ class AcousticPocket:
         return 0.5 * (alpha + 1j * gamma), 0.5 * (alpha - 1j * gamma)
 
     def transmission(self, ms, omegas):
-        """Single-pass transmission Gamma_m of the transition region."""
+        """
+        Single-pass transmission Gamma_m of the transition region: the
+        flux Im(u* u') carried in, K_in, over the flux that came,
+        K_out |I|^2, with K = c k_B the effective frequency on each side
+        (both w without dispersion).
+        """
 
         incoming, _ = self.crossing(ms, omegas)
+        inside, outside = self._effective(omegas)
         with np.errstate(over="ignore", invalid="ignore"):
-            gamma = 1.0 / np.abs(incoming) ** 2
+            gamma = (inside / outside) / np.abs(incoming) ** 2
         return np.nan_to_num(gamma, nan=0.0, posinf=0.0)
 
     # --- What an experiment sees ---
@@ -427,7 +489,7 @@ class AcousticPocket:
 
         omegas = np.atleast_1d(np.asarray(omegas, dtype=float))
         times = np.asarray(t, dtype=float)
-        x = omegas * rho / self.c_in
+        x = self._effective(omegas)[0] * rho / self.c_in
         if mmax is None:
             mmax = int(np.max(x)) + 20
         ms = np.arange(mmax + 1)

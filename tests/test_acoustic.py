@@ -259,3 +259,105 @@ def test_round_trip_is_the_chord_of_the_flat_pocket(sharp):
     assert trip[0] == pytest.approx(2.0 * edge)
     assert trip[1] == pytest.approx(2.0 * math.sqrt(edge ** 2 - 15.0 ** 2))
     assert trip[2] == 0.0
+
+
+# --- Bogoliubov dispersion, local-index approximation ---
+@pytest.fixture(scope="module")
+def dispersive():
+    """B = 2 with xi_out = 1 in units c_out = 1: cutoff at w = 1/4."""
+
+    return AcousticPocket(_bubble(20.0, 1.0, 2.0), 1.0, 1.0, 2000,
+                          healing=1.0)
+
+
+def test_bogoliubov_wavenumber_limits(sharp):
+    """w/c for long waves, sqrt(2 w / c xi) for short ones, and the
+    dispersion relation w^2 = c^2 k^2 (1 + k^2 xi^2 / 4) in between."""
+
+    c, xi = 0.5, 2.0
+    assert sharp.bogoliubov_wavenumber(1.0e-6, c, xi) == pytest.approx(
+        1.0e-6 / c, rel=1e-9)
+    w = 1.0e4
+    assert sharp.bogoliubov_wavenumber(w, c, xi) == pytest.approx(
+        math.sqrt(2.0 * w / (c * xi)), rel=1e-3)
+    k = sharp.bogoliubov_wavenumber(0.3, c, xi)
+    assert c ** 2 * k ** 2 * (1.0 + k ** 2 * xi ** 2 / 4.0) == pytest.approx(
+        0.09, rel=1e-12)
+    assert sharp.bogoliubov_wavenumber(0.3, c, None) == pytest.approx(0.3 / c)
+
+
+def test_dispersion_vanishes_at_low_frequency(sharp, dispersive):
+    omegas = [1.0e-3, 2.0e-3]
+    np.testing.assert_allclose(dispersive.transmission([0, 3], omegas),
+                               sharp.transmission([0, 3], omegas),
+                               rtol=1e-4)
+
+
+def test_dispersive_flux_is_conserved(dispersive):
+    """K_out |I|^2 = K_out |O|^2 + K_in, with K = c k_B on each side."""
+
+    omegas = np.array([0.1, 0.2, 0.3])
+    incoming, outgoing = dispersive.crossing([0, 4], omegas)
+    inside, outside = dispersive._effective(omegas)
+    np.testing.assert_allclose(outside * np.abs(incoming) ** 2,
+                               outside * np.abs(outgoing) ** 2 + inside,
+                               rtol=1e-8)
+
+
+def test_dispersion_moves_the_comb_up_and_sharpens_it(sharp, dispersive):
+    """
+    Below the cutoff the same three resonances survive, shifted up as
+    k_B grows faster than w / c; the larger jump of k_B at the edge
+    reflects more, so after two round trips the comb is sharper (2.2 ->
+    2.6). Behind the throat the edge darkens less, 0.67 -> 0.77, since
+    more partial waves cross it, but still more than without a throat.
+    """
+
+    omegas = np.linspace(0.005, 0.45, 2500)
+
+    def peaks(pocket):
+        weight = pocket.interior_weight([0], omegas)[0]
+        top = [i for i in range(1, len(omegas) - 1)
+               if weight[i] > weight[i - 1] and weight[i] > weight[i + 1]
+               and omegas[i] < 0.25]
+        return omegas[top], weight
+
+    plain, plain_weight = peaks(sharp)
+    shifted, weight = peaks(dispersive)
+    assert len(plain) == len(shifted) == 3
+    assert np.all(shifted > plain)
+
+    trip = 2.0 * sharp.inner / sharp.c_in
+    band = (omegas > 0.075) & (omegas < 0.25)
+    contrast = [p.measured_spectrum(omegas, 2.0 * trip, w)[band]
+                for p, w in ((sharp, plain_weight), (dispersive, weight))]
+    ratios = [c.max() / c.min() for c in contrast]
+    assert ratios[1] == pytest.approx(2.6, rel=0.05)
+    assert ratios[1] > ratios[0]
+
+    band_w = np.linspace(0.125, 0.25, 20)
+    edge = dispersive.filled_intensity(18.0, band_w, 2.0 * trip).mean()
+    assert edge == pytest.approx(0.77, abs=0.01)
+
+
+def test_dispersive_transmission_and_reflection_add_to_one(dispersive):
+    omegas = np.array([0.1, 0.2, 0.3])
+    incoming, outgoing = dispersive.crossing([0, 4], omegas)
+    gamma = dispersive.transmission([0, 4], omegas)
+    np.testing.assert_allclose(gamma + np.abs(outgoing / incoming) ** 2,
+                               1.0, rtol=1e-8)
+
+
+def test_dispersive_round_trip_runs_at_the_group_velocity(dispersive):
+    """
+    v_g / c = (1 + k^2 xi^2 / 2) / sqrt(1 + k^2 xi^2 / 4), faster than
+    sound: the s-wave crosses the pocket in 2 R~ / v_g.
+    """
+
+    w = 0.2
+    xi_in = 2.0
+    k = dispersive.bogoliubov_wavenumber(w, dispersive.c_in, xi_in)
+    group = dispersive.c_in * (1.0 + 0.5 * (k * xi_in) ** 2) / math.sqrt(
+        1.0 + 0.25 * (k * xi_in) ** 2)
+    assert dispersive.round_trip([0], [w])[0, 0] == pytest.approx(
+        2.0 * dispersive.inner / group, rel=1e-12)
