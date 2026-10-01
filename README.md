@@ -101,6 +101,7 @@ Warp_Drive/
 │   ├── symbolic.py            # Einstein tensor: source of truth
 │   ├── geodesics.py           # null rays: the sky from the bubble
 │   ├── waves.py               # scalar waves: the pocket as a cavity behind the throat
+│   ├── acoustic.py            # phonon rays in a 2D condensate, checked on Viermann et al.
 │   ├── metrics/
 │   │   ├── base.py            # WarpMetric: the 3+1 interface
 │   │   ├── alcubierre.py      # the 1994 metric
@@ -177,6 +178,10 @@ pins the curvature term of the potential, on fourth-order convergence (a
 first-order solver would mean the jump of $B''$ at the pocket edge is sampled
 wrongly), on the Fabry–Pérot peak height against the single-pass transmission,
 and on the closed-cavity average of 1 for open and tunnelling modes alike.
+The phonon rays of `acoustic.py` are checked against the arcsine law of the
+radial travel time, against a sympy derivation of the curvature of the
+optical metric from its Christoffel symbols, and on the conservation of
+frequency and angular momentum.
 
 ### Where the physics comes from
 
@@ -553,6 +558,39 @@ calculation adds nothing to it.
 
 ![Transmission of the throat, the cavity comb at the centre, and the filling off centre](images/readme/broeck_cavity.png)
 
+**Towards an acoustic pocket.** In a Bose–Einstein condensate the wave regime
+$\Xi \sim 1$ is natural, so the comb of the cavity is the laboratory signature
+to look for. Every ingredient exists separately: a 1D acoustic warp drive
+(Finazzi 2012), engineered spatial curvature in 2D condensates (Viermann et al.
+2022), acoustic throats (Vaidya and Kruczenski 2024), cavity resonances between
+horizons (black-hole lasers), and measured Hawking radiation (Steinhauer and
+collaborators); an acoustic pocket behind a throat was not found.
+
+A first estimate says it is hard. A pocket of size $L$ holds about
+$`N \simeq L/\pi\xi_\mathrm{in}`$ resonances below the Bogoliubov cutoff, with
+$`\xi_\mathrm{in} = \hbar/m c_\mathrm{in}`$ the healing length inside, and a time
+$T$ allows $`n_\mathrm{rt} = T c_\mathrm{in}/2L`$ round trips. Their product does
+not depend on the size of the pocket,
+
+```math
+N\,n_\mathrm{rt} \simeq \frac{\mu_\mathrm{in}\,T}{h}, \qquad \mu_\mathrm{in} = m\,c_\mathrm{in}^2
+```
+
+and a pocket of slow sound, $B = c_\mathrm{out}/c_\mathrm{in}$, lowers it as
+$1/B^2$. A clear comb, five resonances over five round trips, needs about 25.
+The rubidium black hole of Muñoz de Nova et al. (2019), $c = 0.52$ mm/s and
+about 0.1 s of stationary flow, and the potassium disc of Viermann et al.,
+$c = 1.2$ mm/s over tens of milliseconds, both give about 7 without a pocket
+and 1.8 with $B = 2$. The comb needs condensates denser or longer-lived by an
+order of magnitude.
+
+The ray tools for the acoustic pocket are first checked on the published
+geometry: `acoustic.ThomasFermiDisc` reproduces the harmonically trapped disc
+of Viermann et al., whose optical metric $`(dr^2 + r^2 d\phi^2)/c_s^2`$ has
+curvature $`K = -2c_0^2/(R^2 - r^2)`$, negative and nearly constant near the
+centre, and in which a phonon aimed at the centre from 20 µm arrives after
+$`(R/c_0)\arcsin(0.8) = 19.3`$ ms, the time scale of their wave packets.
+
 With the same shift wall, the pocket adds a thin shell carrying both signs of
 energy and holds more space than its coordinate size: at the default parameters
 10 m of coordinate radius hold 110 m of proper radius.
@@ -773,6 +811,15 @@ where the wave regime of the cavity is natural, lives in
 - S. Finazzi, S. Liberati & C. Barceló, Phys. Rev. D **79**, 124017 (2009)
 - W. A. Hiscock, *Quantum effects in the Alcubierre warp drive spacetime*,
   Class. Quantum Grav. **14**, L183 (1997)
+- S. Finazzi, *Analogue gravitational phenomena in Bose–Einstein condensates*,
+  PhD thesis, SISSA (2012), arXiv:1208.4729
+- J. R. Muñoz de Nova, K. Golubkov, V. I. Kolobov & J. Steinhauer,
+  *Observation of thermal Hawking radiation and its temperature in an analogue
+  black hole*, Nature **569**, 688 (2019)
+- C. Viermann et al., *Quantum field simulator for dynamics in curved
+  spacetime*, Nature **611**, 260 (2022)
+- S. Vaidya & M. Kruczenski, *Acoustic black holes, white holes, and wormholes
+  in Bose–Einstein condensates in two dimensions*, arXiv:2412.02727 (2024)
 - R. F. Rosato, S. Biswas & S. Chakraborty, *Greybody factors, reflectionless
   scattering modes, and echoes of ultracompact horizonless objects*,
   arXiv:2501.16433 (2025)

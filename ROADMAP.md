@@ -521,7 +521,7 @@ until the trapped modes tunnel in, and none at all at the centre.
 
 ## 5. An acoustic Van Den Broeck bubble
 
-**Next.** The question, reframed by section 4: the pocket does not filter a
+**Next: 5c.** The question, reframed by section 4: the pocket does not filter a
 stationary flux, it is a cavity. Does an acoustic pocket, a region of slow
 sound behind a throat, leave a measurable Fabry–Pérot comb in the
 density–density correlation spectrum of a Bose–Einstein condensate?
@@ -541,21 +541,27 @@ density–density correlation spectrum of a Bose–Einstein condensate?
       Jacobson; Finazzi and Parentani; de Nova, Finazzi and Carusotto 2016)
 - [x] Measured analogue Hawking radiation and its correlations: Steinhauer
       (2016), Muñoz de Nova et al. (2019), Kolobov et al. (2021)
-- [ ] One of them reproduced as a validation test of the solver, for example
-      wave-packet propagation on a known curvature as in Viermann et al.
+- [x] One of them reproduced as a validation test: `acoustic.ThomasFermiDisc`,
+      the harmonically trapped disc of Viermann et al., with the arcsine law
+      of the radial travel time (19.3 ms from 20 µm) and the curvature
+      $`-2c_0^2/(R^2 - r^2)`$ of its optical metric checked against sympy
 
 5b — Feasibility first, since it can stop the section:
 
-- [ ] Realistic parameters from the experiments: speed of sound, healing
-      length $\xi$, condensate size, flow speed, Hawking temperature
-- [ ] Comb spacing $\Delta\omega \simeq \pi c_s/P$ and the widths
-      $\propto \Gamma_\ell$ against the Bogoliubov frequency where the
-      dispersion breaks the analogy, and against the experimental resolution
-- [ ] $\Xi = \kappa A_\mathrm{min}/2\pi$ for realistic pockets: the wave
-      regime $\Xi \sim 1$ is where the comb is visible
-- [ ] **Decision point:** if no realistic configuration keeps the comb below
-      the dispersive cutoff and above the resolution, the paper rests on
-      sections 3 and 4
+- [x] Realistic parameters from the experiments: Muñoz de Nova et al. (2019),
+      Rb-87, $c_\mathrm{out} = 0.52$ mm/s, $\xi = 1.4$ µm, $T_H = 0.35$ nK,
+      about 0.1 s of stationary flow; Viermann et al. (2022), K-39 in 2D,
+      $c_s = 1.2$ mm/s, Thomas–Fermi radius 25 µm, tens of milliseconds
+- [x] Comb against dispersion and duration: resonances below the cutoff
+      times round trips is $`\mu_\mathrm{in}T/h`$, independent of the pocket
+      size and lowered as $1/B^2$ by slow sound; a clear comb needs about 25,
+      the experiments give about 7 without a pocket and 1.8 with $B = 2$
+- [x] Inside the pocket the Hawking band reaches the dispersive cutoff,
+      $`k_H\xi_\mathrm{in} \simeq 0.12\,B^2`$, at $B \approx 3$
+- [x] **Decision point:** with published parameters the comb is out of reach
+      by a factor of 4 to 30. Section 5 goes on anyway, as a prediction for
+      denser or longer-lived condensates, with the figure of merit
+      $`\mu_\mathrm{in}T/h \gtrsim 25`$ as the experimental requirement
 
 5c — The new result, if 5b passes:
 
