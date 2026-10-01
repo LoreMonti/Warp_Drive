@@ -378,7 +378,7 @@ class AcousticPocket:
         return np.nan_to_num(gamma, nan=0.0, posinf=0.0)
 
     # --- What an experiment sees ---
-    def measured_spectrum(self, omegas, duration):
+    def measured_spectrum(self, omegas, duration, weight=None):
         """
         Interior s-wave intensity at the centre, |H|^2 = 1 / N_0, as a
         record of finite duration T resolves it: smoothed with the
@@ -389,10 +389,12 @@ class AcousticPocket:
 
         omegas   : uniform grid [rad s^-1], wide enough for the kernel
         duration : record length T [s]
+        weight   : 1 / N_0 on that grid, if already computed
         """
 
         omegas = np.asarray(omegas, dtype=float)
-        weight = self.interior_weight([0], omegas)[0]
+        if weight is None:
+            weight = self.interior_weight([0], omegas)[0]
         kernel = np.sinc((omegas[None, :] - omegas[:, None]) * duration
                          / (2.0 * np.pi)) ** 2
         # NumPy 2 on macOS Accelerate flags spurious floating-point errors
@@ -416,13 +418,15 @@ class AcousticPocket:
 
             S = sum_m eps_m J_m(w rho / c_in)^2 (1 - exp(-t / tau_m)),
 
-        eps_0 = 1, eps_m = 2. It tends to 1 everywhere. With a throat,
+        eps_0 = 1, eps_m = 2; t may be an array of times, which adds a
+        leading axis. It tends to 1 everywhere. With a throat,
         points closer to the edge than A_min c_in stay darker for many
         round trips, while modes with m > w A_min tunnel in; a slow-sound
         cavity without a throat fills them all at once.
         """
 
         omegas = np.atleast_1d(np.asarray(omegas, dtype=float))
+        times = np.asarray(t, dtype=float)
         x = omegas * rho / self.c_in
         if mmax is None:
             mmax = int(np.max(x)) + 20
@@ -431,7 +435,8 @@ class AcousticPocket:
         bessel2 = j ** 2 / (0.5 * np.pi * x)
         eps = np.where(ms == 0, 1.0, 2.0)[:, None]
         # tau = 0 for modes turning outside the pocket: they fill at once
+        tau = self.fill_time(ms, omegas)
         with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
-            filled = -np.expm1(-t / self.fill_time(ms, omegas))
+            filled = -np.expm1(-times[..., None, None] / tau)
         return np.sum(eps * bessel2 * np.nan_to_num(filled, nan=0.0),
-                      axis=0)
+                      axis=-2)

@@ -521,7 +521,8 @@ until the trapped modes tunnel in, and none at all at the centre.
 
 ## 5. An acoustic Van Den Broeck bubble
 
-**Next: 5c.** The question, reframed by section 4: the pocket does not filter a
+**Done up to 5c**, except dispersion and the flow. The question, reframed by
+section 4: the pocket does not filter a
 stationary flux, it is a cavity. Does an acoustic pocket, a region of slow
 sound behind a throat, leave a measurable Fabry–Pérot comb in the
 density–density correlation spectrum of a Bose–Einstein condensate?
@@ -558,22 +559,37 @@ density–density correlation spectrum of a Bose–Einstein condensate?
       the experiments give about 7 without a pocket and 1.8 with $B = 2$
 - [x] Inside the pocket the Hawking band reaches the dispersive cutoff,
       $`k_H\xi_\mathrm{in} \simeq 0.12\,B^2`$, at $B \approx 3$
-- [x] **Decision point:** with published parameters the comb is out of reach
-      by a factor of 4 to 30. Section 5 goes on anyway, as a prediction for
-      denser or longer-lived condensates, with the figure of merit
-      $`\mu_\mathrm{in}T/h \gtrsim 25`$ as the experimental requirement
+- [x] **Decision point:** with published parameters the comb first looked out
+      of reach by a factor of 4 to 30, and section 5 went on anyway. 5c then
+      showed the estimate was too strict (see below): the requirement is
+      $`\mu_\mathrm{in}T/h \gtrsim 6`$ and the shortfall a factor of 2 to 3
 
 5c — The new result, if 5b passes:
 
-- [ ] Acoustic metric with flow $\mathbf v$ and $c_s = c/B$, and its conformal
-      relation to the Van Den Broeck metric
-- [ ] Phonon wave equation in 2+1, where the scalar is not conformally
-      invariant: the extra conformal-factor term in the potential, and the
-      cavity comb computed with it (`waves.py` extended to 2D partial waves)
-- [ ] The density profile and transonic flow that produce the pocket and the
-      horizon
-- [ ] Density–density correlation spectrum with and without the pocket: the
-      signature of the comb
+- [x] Acoustic pocket with $`c_s = c_\mathrm{out}/B`$: the optical areal radius
+      is the areal radius of section 3, so rays coincide
+- [x] Phonon wave equation in 2+1 with the conformal term
+      $`(\sqrt q)''/\sqrt q`$, $q = rn/c_s$, for a uniform coupling and for a
+      uniform density: `acoustic.AcousticPocket`, checked on the exact
+      zero-frequency solution, the impedance step and the Fabry–Pérot contrast
+- [x] The comb in a record of finite duration: flat below one round trip,
+      contrast 2.2 after two for $B = 2$; requirement revised to
+      $`\mu_\mathrm{in}T/h \gtrsim 6`$
+- [x] The throat signature: the comb is generic to any slow-sound region, but
+      behind a throat the edge of the pocket stays darker (0.67 at
+      $`0.9\,\tilde R`$ after two round trips) while trapped modes tunnel in
+- [x] Figure `plot_acoustic_pocket`
+- [ ] Bogoliubov dispersion inside the solver, beyond marking the cutoff
+- [ ] The transonic flow that makes a horizon, and the full density–density
+      correlation function with and without the pocket
+
+*Lesson:* the feasibility estimate of 5b assumed a high-finesse cavity and
+asked for five round trips. The wave calculation showed that the impedance
+step makes a low-finesse cavity that forms in one, and the requirement
+dropped by a factor of four. A pessimistic order-of-magnitude estimate
+deserved the same scrutiny as an optimistic one. The same calculation also
+showed the comb is not specific to the geometry: comparing with a control
+without a throat is what isolated the real signature.
 
 5d — Optional, only if 5c holds:
 

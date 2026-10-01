@@ -101,7 +101,7 @@ Warp_Drive/
 │   ├── symbolic.py            # Einstein tensor: source of truth
 │   ├── geodesics.py           # null rays: the sky from the bubble
 │   ├── waves.py               # scalar waves: the pocket as a cavity behind the throat
-│   ├── acoustic.py            # phonon rays in a 2D condensate, checked on Viermann et al.
+│   ├── acoustic.py            # phonons in a 2D condensate: the Viermann disc and the acoustic pocket
 │   ├── metrics/
 │   │   ├── base.py            # WarpMetric: the 3+1 interface
 │   │   ├── alcubierre.py      # the 1994 metric
@@ -181,7 +181,11 @@ and on the closed-cavity average of 1 for open and tunnelling modes alike.
 The phonon rays of `acoustic.py` are checked against the arcsine law of the
 radial travel time, against a sympy derivation of the curvature of the
 optical metric from its Christoffel symbols, and on the conservation of
-frequency and angular momentum.
+frequency and angular momentum. The acoustic pocket is checked on the exact
+zero-frequency solution $u = \sqrt q$ for both density laws, which pins the
+conformal term, on the transmission $`1 - ((B-1)/(B+1))^2`$ of a sharp edge, on
+the Fabry–Pérot contrast of the comb, on the flat chord of the round trip, and
+on the darker edge behind a throat against a smooth cavity without one.
 
 ### Where the physics comes from
 
@@ -566,7 +570,7 @@ to look for. Every ingredient exists separately: a 1D acoustic warp drive
 horizons (black-hole lasers), and measured Hawking radiation (Steinhauer and
 collaborators); an acoustic pocket behind a throat was not found.
 
-A first estimate says it is hard. A pocket of size $L$ holds about
+How hard is it to see? A pocket of size $L$ holds about
 $`N \simeq L/\pi\xi_\mathrm{in}`$ resonances below the Bogoliubov cutoff, with
 $`\xi_\mathrm{in} = \hbar/m c_\mathrm{in}`$ the healing length inside, and a time
 $T$ allows $`n_\mathrm{rt} = T c_\mathrm{in}/2L`$ round trips. Their product does
@@ -577,12 +581,18 @@ N\,n_\mathrm{rt} \simeq \frac{\mu_\mathrm{in}\,T}{h}, \qquad \mu_\mathrm{in} = m
 ```
 
 and a pocket of slow sound, $B = c_\mathrm{out}/c_\mathrm{in}$, lowers it as
-$1/B^2$. A clear comb, five resonances over five round trips, needs about 25.
-The rubidium black hole of Muñoz de Nova et al. (2019), $c = 0.52$ mm/s and
-about 0.1 s of stationary flow, and the potassium disc of Viermann et al.,
-$c = 1.2$ mm/s over tens of milliseconds, both give about 7 without a pocket
-and 1.8 with $B = 2$. The comb needs condensates denser or longer-lived by an
-order of magnitude.
+$1/B^2$. A first estimate asked for five resonances over five round trips, about
+25, as for a high-finesse cavity. The wave calculation below shows that is too
+strict: at the edge of a slow-sound pocket the impedance $n k$ jumps, so a step
+reflects $`|r| = (B - 1)/(B + 1)`$ and transmits $`\Gamma = 1 - r^2 \approx 0.89`$
+for $B = 2$. That is a low-finesse cavity: it fills in about one round trip,
+$`\tau = t_\mathrm{rt}/[-\ln(1 - \Gamma)] \approx 0.5\,t_\mathrm{rt}`$, and its
+comb still has the Fabry–Pérot contrast $`((1 + |r|)/(1 - |r|))^2 = 4`$. Three
+resonances over two round trips are enough, $`\mu_\mathrm{in}T/h \gtrsim 6`$. The
+rubidium black hole of Muñoz de Nova et al. (2019), $c = 0.52$ mm/s and about
+0.1 s of stationary flow, and the potassium disc of Viermann et al., $c = 1.2$
+mm/s over tens of milliseconds, give about 7 without a pocket, 3.1 with
+$B = 1.5$ and 1.8 with $B = 2$: short by a factor of 2 to 3, not out of reach.
 
 The ray tools for the acoustic pocket are first checked on the published
 geometry: `acoustic.ThomasFermiDisc` reproduces the harmonically trapped disc
@@ -590,6 +600,44 @@ of Viermann et al., whose optical metric $`(dr^2 + r^2 d\phi^2)/c_s^2`$ has
 curvature $`K = -2c_0^2/(R^2 - r^2)`$, negative and nearly constant near the
 centre, and in which a phonon aimed at the centre from 20 µm arrives after
 $`(R/c_0)\arcsin(0.8) = 19.3`$ ms, the time scale of their wave packets.
+
+**The acoustic pocket and its comb.** Take $`c_s = c_\mathrm{out}/B(r)`$ with Van
+Den Broeck's profile: the optical areal radius $r/c_s = Br/c_\mathrm{out}$ is the
+areal radius of section 3, so phonon rays are light rays. The density is
+$`n \propto B^{-2\nu}`$, $\nu = 1$ for a uniform coupling ($`c_s^2 = gn/m`$, slow
+sound from low density) and $\nu = 0$ for a uniform density with the coupling
+tuned in space. In optical distance $ds = dr/c_s$, with
+$`\phi = e^{-i\omega t}e^{im\varphi}\,u/\sqrt q`$,
+
+```math
+u'' + \left[\omega^2 - \frac{m^2}{A^2} - \frac{(\sqrt q)''}{\sqrt q}\right]u = 0, \qquad A = \frac{r}{c_s}, \qquad q = \frac{r\,n}{c_s}
+```
+
+The density enters through $q$: the conformal factor $n/c_s$ of the 2+1
+acoustic metric does not drop out of the wave equation. `acoustic.AcousticPocket`
+solves it as `waves.py` does in section 4, with Bessel functions as free
+solutions.
+
+Three results (figure below, $B = 2$, units $`\xi_\mathrm{out} = c_\mathrm{out} = 1`$):
+seen through a record of duration $T$, the comb is flat below one round trip
+and has contrast 2.2 after two, 3.2 after five, against 4.4 for an infinite
+record; the contrast grows with $B$, but so does the healing length inside,
+leaving fewer resonances below the cutoff. Second, **the comb is not specific
+to the Van Den Broeck geometry**: a slow-sound region with a smooth edge and no
+throat has one too. Third, what is specific is the throat seen off centre: at
+$`0.9\,\tilde R`$ a pocket behind a throat holds 0.67 of the outside intensity
+after two round trips and 0.78 after five, recovering only as the trapped
+modes with $m \gt \omega A_\mathrm{min}$ tunnel in, while a cavity without a
+throat is full at once. The deficit is far smaller than the ray value, because
+here $\Xi \sim 1$: the wave regime that a gravitational pocket within the
+quantum inequalities never reaches.
+
+What is left out: the Bogoliubov dispersion inside the solver (frequencies
+above the cutoff are marked, not modelled), the transonic flow that would make
+a horizon (a comb needs only a stationary source of phonons), and the full
+density–density correlation function.
+
+![The comb of an acoustic pocket against record duration, and the darker edge behind a throat](images/readme/acoustic_pocket.png)
 
 With the same shift wall, the pocket adds a thin shell carrying both signs of
 energy and holds more space than its coordinate size: at the default parameters

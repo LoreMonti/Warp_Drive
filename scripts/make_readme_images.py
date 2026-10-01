@@ -39,6 +39,7 @@ from warpdrive import (                                       # noqa: E402
 from warpdrive.viz import (                                   # noqa: E402
     animate_flyby,
     plot_energy_density,
+    plot_acoustic_pocket,
     plot_curvature_bound,
     plot_energy_floor,
     plot_pocket_cavity,
@@ -102,6 +103,7 @@ def main(argv=None):
         target("broeck_quantum_inequality.png")))
     paths.append(plot_curvature_bound(target("broeck_curvature_bound.png")))
     paths.append(plot_pocket_cavity(broeck, target("broeck_cavity.png")))
+    paths.append(plot_acoustic_pocket(target("acoustic_pocket.png")))
 
     # neck scan at v_s = c, 100 m pocket, wall of 1e2 Planck lengths
     necks = np.logspace(np.log10(3.0e-15), np.log10(100.0), 60)

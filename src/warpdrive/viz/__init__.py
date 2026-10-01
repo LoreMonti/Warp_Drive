@@ -1,6 +1,7 @@
 # --- Visualisation ---
 from .animation import animate_flyby
 from .comparison import (
+    plot_acoustic_pocket,
     plot_curvature_bound,
     plot_energy_floor,
     plot_pocket_cavity,
@@ -30,6 +31,7 @@ __all__ = [
     "plot_pocket_throat",
     "plot_energy_floor",
     "plot_pocket_cavity",
+    "plot_acoustic_pocket",
     "plot_curvature_bound",
     "plot_quantum_inequality",
     "plot_sky",

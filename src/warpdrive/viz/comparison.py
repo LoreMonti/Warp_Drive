@@ -524,3 +524,94 @@ def plot_pocket_cavity(metric, path, n_steps=4000, n_k=20000):
 
     fig.tight_layout()
     return save(fig, path)
+
+
+def plot_acoustic_pocket(path, radius=20.0, n_steps=2000):
+    """
+    The acoustic Van Den Broeck pocket in a 2D condensate, in units of the
+    healing length and the speed of sound outside (xi_out = c_out = 1).
+
+    Left: the s-wave comb at the centre for B = 2, as records of growing
+    duration T resolve it, below the Bogoliubov cutoff k xi_in = 1, i.e.
+    w = 1 / B^2. Centre: its contrast against T, in round trips, for
+    three values of B. Right: intensity near the edge after a flux is
+    switched on, behind a throat and in a slow-sound cavity without one.
+    """
+
+    # local imports keep viz free of a hard dependency on the solver
+    from ..acoustic import AcousticPocket
+    from ..metrics.broeck import BroeckMetric
+
+    def pocket(ratio, thickness=1.0, order=80):
+        metric = BroeckMetric(speed=10.0 * C_LIGHT,
+                              radius=20.0 * (radius + thickness),
+                              sigma=10.0, inner_radius=radius,
+                              thickness=thickness, alpha=ratio - 1.0,
+                              order=order)
+        return AcousticPocket(metric, 1.0, 1.0, n_steps)
+
+    fig, (left, centre, right) = dark_figure(1, 3, figsize=(16.0, 4.8))
+    omegas = np.linspace(0.005, 0.45, 2500)
+
+    sharp = pocket(2.0)
+    trip = 2.0 * sharp.inner / sharp.c_in
+    cutoff = 0.25
+    colours = plt.get_cmap("plasma")(np.linspace(0.2, 0.85, 3))
+    weight = sharp.interior_weight([0], omegas)[0]
+    left.plot(omegas / cutoff, weight, color=FG, lw=0.8, alpha=0.6,
+              label="infinite record")
+    for turns, colour in zip((1.0, 2.0, 5.0), colours):
+        left.plot(omegas / cutoff, sharp.measured_spectrum(
+                      omegas, turns * trip, weight),
+                  color=colour, lw=1.8, label=f"T = {turns:g} round trips")
+    left.axvspan(1.0, 1.6, color=FG, alpha=0.08, lw=0)
+    left.text(1.03, 0.04, "beyond the Bogoliubov\ncutoff: no analogue",
+              color=FG, fontsize=8, transform=left.get_xaxis_transform())
+    left.set_xlim(0.0, 1.6)
+    left.set_xlabel(r"$\omega / \omega_c$,  $\omega_c = c_\mathrm{in}/\xi_\mathrm{in}$")
+    left.set_ylabel("intensity at the centre / incident")
+    left.set_title("B = 2: the comb after two round trips")
+    dark_axes(left)
+    _legend(left, loc="upper left", ncol=2)
+
+    turns = np.linspace(0.3, 6.0, 30)
+    for ratio, colour in zip((1.5, 2.0, 3.0), colours):
+        cavity = pocket(ratio)
+        trip_b = 2.0 * cavity.inner / cavity.c_in
+        cut = 1.0 / ratio ** 2
+        grid = np.linspace(0.005, 1.8 * cut, 1500)
+        inside = (grid > 0.3 * cut) & (grid < cut)
+        weight_b = cavity.interior_weight([0], grid)[0]
+        contrast = []
+        for n in turns:
+            spectrum = cavity.measured_spectrum(grid, n * trip_b,
+                                                weight_b)[inside]
+            contrast.append(spectrum.max() / spectrum.min())
+        centre.plot(turns, contrast, color=colour, lw=2.0,
+                    label=f"B = {ratio:g}")
+    centre.axhline(2.0, color=FG, lw=0.8, ls=":")
+    centre.set_xlabel("record duration T  [round trips]")
+    centre.set_ylabel("comb contrast, peak / valley")
+    centre.set_title("A low-finesse cavity forms in about one trip")
+    dark_axes(centre)
+    _legend(centre, loc="upper left")
+
+    smooth = pocket(2.0, thickness=60.0, order=3)
+    band_w = np.linspace(0.125, 0.25, 20)
+    times = np.logspace(-0.3, 2.3, 60)
+    for rho, style in ((15.0, "-"), (18.0, "--")):
+        for cavity, name, colour in ((sharp, "throat", ACCENT),
+                                     (smooth, "no throat", TRACER)):
+            filled = cavity.filled_intensity(rho, band_w,
+                                             times * trip).mean(axis=-1)
+            right.semilogx(times, filled, color=colour, lw=2.0, ls=style,
+                           label=f"{name}, rho = {rho / radius:.2f} R~")
+    right.axhline(1.0, color=FG, lw=0.8, ls=":")
+    right.set_xlabel("time since the flux is switched on  [round trips]")
+    right.set_ylabel("intensity / incident intensity")
+    right.set_title("Behind a throat the edge stays darker")
+    dark_axes(right)
+    _legend(right, loc="lower right")
+
+    fig.tight_layout()
+    return save(fig, path)

@@ -22,6 +22,7 @@ from warpdrive import (                                     # noqa: E402
 from warpdrive.constants import C_LIGHT                     # noqa: E402
 from warpdrive.viz import (                                 # noqa: E402
     plot_all,
+    plot_acoustic_pocket,
     plot_curvature_bound,
     plot_energy_floor,
     plot_pocket_cavity,
@@ -185,3 +186,8 @@ def test_pocket_cavity_figure_renders(tmp_path):
     plot_pocket_cavity(BroeckMetric(speed=10.0 * C_LIGHT),
                        str(tmp_path / "cavity.png"), n_steps=500, n_k=200)
     assert (tmp_path / "cavity.png").stat().st_size > 10_000
+
+
+def test_acoustic_pocket_figure_renders(tmp_path):
+    plot_acoustic_pocket(str(tmp_path / "acoustic.png"), n_steps=300)
+    assert (tmp_path / "acoustic.png").stat().st_size > 10_000
