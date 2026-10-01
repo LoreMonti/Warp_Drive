@@ -521,7 +521,7 @@ until the trapped modes tunnel in, and none at all at the centre.
 
 ## 5. An acoustic Van Den Broeck bubble
 
-**Done up to 5c**, except dispersion and the flow. The question, reframed by
+**Done up to 5c**, except mode conversion and the flow. The question, reframed by
 section 4: the pocket does not filter a
 stationary flux, it is a cavity. Does an acoustic pocket, a region of slow
 sound behind a throat, leave a measurable Fabry–Pérot comb in the
@@ -579,7 +579,11 @@ density–density correlation spectrum of a Bose–Einstein condensate?
       behind a throat the edge of the pocket stays darker (0.67 at
       $`0.9\,\tilde R`$ after two round trips) while trapped modes tunnel in
 - [x] Figure `plot_acoustic_pocket`
-- [ ] Bogoliubov dispersion inside the solver, beyond marking the cutoff
+- [x] Bogoliubov dispersion in a local-index approximation (`healing=`):
+      the same resonances, shifted up; comb contrast after two round trips
+      2.2 -> 2.6; darker edge 0.67 -> 0.77. Conclusions unchanged
+- [ ] Mode conversion of the full Bogoliubov–de Gennes equations at a sharp
+      edge
 - [ ] The transonic flow that makes a horizon, and the full density–density
       correlation function with and without the pocket
 

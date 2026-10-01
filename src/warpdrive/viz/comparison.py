@@ -526,7 +526,7 @@ def plot_pocket_cavity(metric, path, n_steps=4000, n_k=20000):
     return save(fig, path)
 
 
-def plot_acoustic_pocket(path, radius=20.0, n_steps=2000):
+def plot_acoustic_pocket(path, radius=20.0, n_steps=2000, healing=1.0):
     """
     The acoustic Van Den Broeck pocket in a 2D condensate, in units of the
     healing length and the speed of sound outside (xi_out = c_out = 1).
@@ -536,6 +536,8 @@ def plot_acoustic_pocket(path, radius=20.0, n_steps=2000):
     w = 1 / B^2. Centre: its contrast against T, in round trips, for
     three values of B. Right: intensity near the edge after a flux is
     switched on, behind a throat and in a slow-sound cavity without one.
+    The Bogoliubov dispersion is included in the local-index
+    approximation unless `healing` is None.
     """
 
     # local imports keep viz free of a hard dependency on the solver
@@ -548,7 +550,7 @@ def plot_acoustic_pocket(path, radius=20.0, n_steps=2000):
                               sigma=10.0, inner_radius=radius,
                               thickness=thickness, alpha=ratio - 1.0,
                               order=order)
-        return AcousticPocket(metric, 1.0, 1.0, n_steps)
+        return AcousticPocket(metric, 1.0, 1.0, n_steps, healing=healing)
 
     fig, (left, centre, right) = dark_figure(1, 3, figsize=(16.0, 4.8))
     omegas = np.linspace(0.005, 0.45, 2500)
@@ -570,7 +572,7 @@ def plot_acoustic_pocket(path, radius=20.0, n_steps=2000):
     left.set_xlim(0.0, 1.6)
     left.set_xlabel(r"$\omega / \omega_c$,  $\omega_c = c_\mathrm{in}/\xi_\mathrm{in}$")
     left.set_ylabel("intensity at the centre / incident")
-    left.set_title("B = 2: the comb after two round trips")
+    left.set_title("B = 2, Bogoliubov: the comb after two round trips")
     dark_axes(left)
     _legend(left, loc="upper left", ncol=2)
 

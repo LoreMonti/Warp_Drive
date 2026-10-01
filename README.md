@@ -185,7 +185,10 @@ frequency and angular momentum. The acoustic pocket is checked on the exact
 zero-frequency solution $u = \sqrt q$ for both density laws, which pins the
 conformal term, on the transmission $`1 - ((B-1)/(B+1))^2`$ of a sharp edge, on
 the Fabry–Pérot contrast of the comb, on the flat chord of the round trip, and
-on the darker edge behind a throat against a smooth cavity without one.
+on the darker edge behind a throat against a smooth cavity without one. The
+Bogoliubov option is checked on the limits $\omega/c$ and $`\sqrt{2\omega/c\xi}`$ of
+$k_B$, on flux conservation with $`K = c\,k_B`$ on each side, on the group
+velocity of the round trip, and on the shifted comb.
 
 ### Where the physics comes from
 
@@ -618,23 +621,33 @@ acoustic metric does not drop out of the wave equation. `acoustic.AcousticPocket
 solves it as `waves.py` does in section 4, with Bessel functions as free
 solutions.
 
-Three results (figure below, $B = 2$, units $`\xi_\mathrm{out} = c_\mathrm{out} = 1`$):
-seen through a record of duration $T$, the comb is flat below one round trip
-and has contrast 2.2 after two, 3.2 after five, against 4.4 for an infinite
-record; the contrast grows with $B$, but so does the healing length inside,
+Three results (figure below, $B = 2$, units $`\xi_\mathrm{out} = c_\mathrm{out} = 1`$,
+Bogoliubov dispersion included as described next): seen through a record of
+duration $T$, the comb is flat below one round trip and has contrast 2.6 after
+two, 3.8 after five, against 5.0 for an infinite record; the contrast grows with $B$, but so does the healing length inside,
 leaving fewer resonances below the cutoff. Second, **the comb is not specific
 to the Van Den Broeck geometry**: a slow-sound region with a smooth edge and no
 throat has one too. Third, what is specific is the throat seen off centre: at
-$`0.9\,\tilde R`$ a pocket behind a throat holds 0.67 of the outside intensity
-after two round trips and 0.78 after five, recovering only as the trapped
+$`0.9\,\tilde R`$ a pocket behind a throat holds 0.77 of the outside intensity
+after two round trips and 0.86 after five, recovering only as the trapped
 modes with $m \gt \omega A_\mathrm{min}$ tunnel in, while a cavity without a
 throat is full at once. The deficit is far smaller than the ray value, because
 here $\Xi \sim 1$: the wave regime that a gravitational pocket within the
 quantum inequalities never reaches.
 
-What is left out: the Bogoliubov dispersion inside the solver (frequencies
-above the cutoff are marked, not modelled), the transonic flow that would make
-a horizon (a comb needs only a stationary source of phonons), and the full
+The Bogoliubov dispersion $`\omega^2 = c_s^2k^2(1 + k^2\xi^2/4)`$ enters in a
+local-index approximation: the wave equation sees $`c_s k_B(\omega, r)`$ in place
+of $\omega$, with $\xi = \hbar/mc_s$ growing as $B$ inside, and the pocket is
+crossed at the group velocity. It changes little: the same three resonances
+survive below the cutoff, shifted up (the last from $`0.86\,\omega_c`$ to
+$`0.94\,\omega_c`$); the larger jump of $k_B$ at the edge reflects a little more,
+so the comb after two round trips sharpens from 2.2 to 2.6; and since more
+partial waves cross the throat, the darker edge fades from 0.67 to 0.77. The
+approximation neglects the mode conversion of the full fourth-order
+Bogoliubov–de Gennes equations at an edge as sharp as $\xi$.
+
+What is left out: that mode conversion, the transonic flow that would make a
+horizon (a comb needs only a stationary source of phonons), and the full
 density–density correlation function.
 
 ![The comb of an acoustic pocket against record duration, and the darker edge behind a throat](images/readme/acoustic_pocket.png)
