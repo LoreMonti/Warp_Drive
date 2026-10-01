@@ -448,3 +448,79 @@ def plot_curvature_bound(path, pocket_radius=100.0, outer_radius=20.0,
 
     fig.tight_layout()
     return save(fig, path)
+
+
+def plot_pocket_cavity(metric, path, n_steps=4000, n_k=20000):
+    """
+    The pocket as a cavity behind its throat, for a massless scalar.
+
+    Left: single-pass transmission Gamma_l(k) of the throat for several l,
+    each falling off once l exceeds k A_min. Centre: the interior weight
+    1/N_0 of the s-wave, the only one reaching the centre, a Fabry-Perot
+    comb whose running average stays at 1: no steady-state shielding.
+    Right: intensity a time t after a stationary flux is switched on,
+    off centre, rising to the bright fraction rays give within a few
+    round trips and then only as trapped modes tunnel in.
+    """
+
+    # local imports keep viz free of a hard dependency on the solver
+    from ..waves import PocketWaves, bright_fraction, riccati_bessel
+
+    waves = PocketWaves(metric, n_steps=n_steps)
+    _, throat = metric.throat()
+    trip = 2.0 * waves.pocket_radius / C_LIGHT
+
+    fig, (left, centre, right) = dark_figure(1, 3, figsize=(16.0, 4.8))
+
+    ks = np.linspace(0.05, 4.0, 400)
+    ells = (0, 10, 20, 30, 40)
+    gamma = waves.transmission(ells, ks)
+    colours = plt.get_cmap("plasma")(np.linspace(0.15, 0.85, len(ells)))
+    for ell, row, colour in zip(ells, gamma, colours):
+        left.plot(ks * throat, row, color=colour, lw=1.8, label=f"l = {ell}")
+    left.set_xlabel(r"$k A_\mathrm{min}$")
+    left.set_ylabel(r"single-pass transmission $\Gamma_\ell$")
+    left.set_title("The throat lets in l below k A_min")
+    dark_axes(left)
+    _legend(left, loc="lower right")
+
+    ks = np.linspace(0.5, 2.5, n_k)
+    weight = waves.interior_weight([0], ks)[0]
+    window = max(1, int(round(3.0 * np.pi / waves.pocket_radius
+                              / (ks[1] - ks[0]))))
+    running = np.convolve(weight, np.ones(window) / window, mode="same")
+    centre.semilogy(ks, weight, color=ACCENT, lw=0.8,
+                    label=r"$1/N_0$ at the centre")
+    centre.semilogy(ks[window:-window], running[window:-window], color=FG,
+                    lw=1.6, label="average over three resonance spacings")
+    centre.axhline(1.0, color=FG, lw=0.8, ls=":")
+    centre.set_xlabel(r"$k = \omega / c$  [m$^{-1}$]")
+    centre.set_ylabel("intensity / incident intensity")
+    centre.set_title("A closed cavity: a comb that averages to 1")
+    dark_axes(centre)
+    _legend(centre, loc="lower right")
+
+    ks = np.linspace(3.0, 3.5, 15)
+    times = trip * np.logspace(-0.5, 8.0, 200)
+    for rho, colour in ((30.0, TRACER), (60.0, ACCENT)):
+        lmax = int(ks.max() * rho) + 40
+        ell_range = np.arange(lmax + 1)
+        j, _, _, _ = riccati_bessel(lmax, ks * rho)
+        weights = (2.0 * ell_range[:, None] + 1.0) * (j / (ks * rho)) ** 2
+        tau = waves.fill_time(ell_range, ks)
+        with np.errstate(over="ignore", invalid="ignore"):
+            filled = [np.mean(np.sum(weights * np.nan_to_num(
+                -np.expm1(-t / tau), nan=0.0), axis=0)) for t in times]
+        right.loglog(times / trip, filled, color=colour, lw=2.0,
+                     label=f"rho = {rho:g} m")
+        right.axhline(bright_fraction(rho, throat), color=colour, lw=1.0,
+                      ls="--")
+    right.axhline(1.0, color=FG, lw=0.8, ls=":", label="filled cavity")
+    right.set_xlabel("time since the flux is switched on  [round trips]")
+    right.set_ylabel("intensity / incident intensity")
+    right.set_title("Off centre: the ray limit (dashed), then slow tunnelling")
+    dark_axes(right)
+    _legend(right, loc="lower right")
+
+    fig.tight_layout()
+    return save(fig, path)

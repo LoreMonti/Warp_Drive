@@ -441,41 +441,68 @@ below it.
 
 ## 4. Hawking radiation through the throat
 
-**Next.** Section 3 is done; this is the step in progress.
+Done, except the thermal and directional weighting listed below. Next:
+section 5, starting from what is already known about warp-drive analogues in
+Bose–Einstein condensates.
 
 The question: does the pocket shield the crew from the Hawking radiation of
 the warp horizon, and by how much?
 
 Literature:
 
-- [ ] Finazzi, Liberati and Barceló (2009, 2012) on the semiclassical warp
-      drive: where the Hawking flux goes and what fills the interior
-- [ ] Hiscock (1997) on quantum effects in the Alcubierre spacetime
-- [ ] Greybody factors for spherically symmetric barriers: the Schrödinger-like
-      radial equation, WKB and numerical methods used for black holes
-- [ ] Any work combining a Van Den Broeck pocket with quantum fields, to
-      confirm the question is open
+- [x] Finazzi, Liberati and Barceló (2009) and Coutant, Finazzi and Liberati
+      (2012): thermal flux at the centre at $T_H \gtrsim 10^{-2}\,T_P$ for
+      walls thin enough for the quantum inequalities, in 1+1 only; Van Den
+      Broeck cited for its energies only
+- [x] Hiscock (1997): the 2D stress-energy diverges above $c$; no pocket
+- [x] Greybody factors of wormhole throats and echoes of ultracompact
+      objects (Rosato et al. 2025 and others): the method exists
+- [x] Works combining a Van Den Broeck pocket with quantum fields: none found
+      among the 94 papers citing it; Hart et al. (2002) argue classically,
+      from the coordinate speed $c/B$, that the pocket slows incoming light
 
 Theory:
 
-- [ ] Justify a stationary horizon in the frame of the bubble and its
-      temperature, and state the 3+1 assumption explicitly, since the Hawking
-      flux of a warp drive is established in 1+1 dimensions
-- [ ] Scalar field in the static region inside the shift wall: separation in
-      spherical harmonics, radial equation and effective potential built from
-      $B(r)$
-- [ ] Transmission $\Gamma_\ell(\omega)$ through the throat; show that its
-      eikonal limit reproduces the Bouguer windows of section 2
-- [ ] Flux reaching the pocket: Planck spectrum times $\Gamma_\ell(\omega)$, as
-      a function of $\Xi$ and of the position of the observer
+- [x] The 3+1 assumption stated: the 1+1 flux of Finazzi et al. is taken as a
+      given stationary flux arriving at the neck
+- [x] Radial equation in the areal form,
+      $`u'' + [k^2 - \ell(\ell+1)/A^2 - A''/A]\,u = 0`$
+- [x] The pocket is a closed cavity: in a steady state each partial wave fills
+      it to the outside intensity on average, whatever $\Gamma_\ell$; the
+      throat only sets the filling time $`\tau_\ell \approx t_\mathrm{rt}/\Gamma_\ell`$
+- [x] Ray limit: off centre, after a few round trips, the lit fraction
+      $`1 - \sqrt{1 - (A_\mathrm{min}/\rho)^2}`$; at the centre no delay at all
 
 Code and tests:
 
-- [ ] Radial wave solver, tested on flat space ($\Gamma = 1$), on a barrier
-      with an analytic transmission, and against the Bouguer windows at high
-      frequency
-- [ ] Suppression of the Hawking flux against $\Xi$ and the offset, table and
-      figure
+- [x] `waves.py`: Riccati–Bessel functions, RK4 transfer across the
+      transition, $\Gamma_\ell$, $1/N_\ell$, $\tau_\ell$ and the filling
+      $S(\rho, t)$; tested on flat space, flux conservation, the exact
+      zero-frequency s-wave, fourth-order convergence, the Fabry–Pérot peak
+      and the closed-cavity average
+- [x] Figure `plot_pocket_cavity`
+- [ ] Weight the filling with the Planck spectrum at $T_H$ and with the
+      directional flux of the rear horizon, mapped through the sky of
+      section 2
+- [x] Fix: `horizon_offset` returned None, as if subluminal, for an
+      unresolvable wall at exactly $v_s = 2c$
+
+What section 4 found: the question in the title has a short answer. The
+throat cannot shield the pocket in a steady state, because a closed cavity
+fills to the intensity outside for every partial wave; it only delays the
+filling, by $`t_\mathrm{rt}/\Gamma_\ell`$. The crew at the centre is never
+shielded; off centre the shielding is the ray result, a lit fraction
+$`\simeq (A_\mathrm{min}/\rho)^2/2`$, for times shorter than the tunnelling of
+the trapped modes. For a bubble within the quantum inequalities
+$\Xi \sim 10^{17}$ and rays are exact; wave effects matter only at
+$\Xi \sim 1$, with walls far too thick for the quantum inequalities, or in
+the acoustic analogue of section 5.
+
+*Lesson:* the plan asked for a transmission through the throat as for a
+black hole, but the pocket has no far side. A prototype of the solver showed
+interior averages of 1 for modes that should have been dark, and the
+Fabry–Pérot average explained why. Checking what the steady state is before
+computing a greybody factor would have saved the detour.
 
 Write-up:
 
@@ -490,8 +517,9 @@ T_H = \frac{\hbar c\,\kappa}{2\pi k_B}, \qquad \kappa = \frac{v_s}{c}\,\left|f'(
 A mode of frequency $\omega$ and angular momentum $\ell$ crosses the throat
 only if $\ell \lesssim \omega R_\mathrm{throat}/c$. For the default bubble
 $\Xi \approx 3$ and the wave calculation is needed; for the 1999 configuration
-$\Xi \sim 10^{15}$ and the ray result applies, which predicts a suppression of
-order $(R_\mathrm{throat}/\ell_0)^2$, about $10^{-30}$ a metre from the centre.
+$\Xi \sim 10^{17}$ and the ray result applies, which predicts a lit fraction of
+order $(R_\mathrm{throat}/\ell_0)^2/2$, about $10^{-30}$ a metre from the centre,
+until the trapped modes tunnel in, and none at all at the centre.
 
 ## 5. An acoustic Van Den Broeck bubble
 

@@ -100,6 +100,7 @@ Warp_Drive/
 │   ├── diagnostics.py         # travel times, energy budget, neck scan, quantum inequality, cone pocket
 │   ├── symbolic.py            # Einstein tensor: source of truth
 │   ├── geodesics.py           # null rays: the sky from the bubble
+│   ├── waves.py               # scalar waves: the pocket as a cavity behind the throat
 │   ├── metrics/
 │   │   ├── base.py            # WarpMetric: the 3+1 interface
 │   │   ├── alcubierre.py      # the 1994 metric
@@ -169,6 +170,13 @@ excess, which scales as $r_\mathrm{min}^2$, reach the requested curvature radius
 at *both* corners, cost less than every polynomial with the same curvature
 radius, and cross the quantum inequality at $35\,\ell_P$ with a margin going as
 $r_c^2$.
+The wave solver is checked against mpmath for the Riccati–Bessel functions, on
+flat space ($a = 1$, $c = 0$, $\Gamma = 1$), on flux conservation
+$`|I|^2 = |O|^2 + 1`$, on the exact zero-frequency s-wave $u = A$, which
+pins the curvature term of the potential, on fourth-order convergence (a
+first-order solver would mean the jump of $B''$ at the pocket edge is sampled
+wrongly), on the Fabry–Pérot peak height against the single-pass transmission,
+and on the closed-cavity average of 1 for open and tunnelling modes alike.
 
 ### Where the physics comes from
 
@@ -489,6 +497,62 @@ revision.
 
 ![Net energy against the curvature bound, and the best order of the polynomial](images/readme/broeck_curvature_bound.png)
 
+**The pocket is a cavity, not a shield.** Above $c$ the rear wall of the bubble
+is a horizon, and Finazzi, Liberati and Barceló (2009) find a thermal flux at
+the centre of the bubble at
+
+```math
+T_H = \frac{\hbar c\,\kappa}{2\pi k_B}, \qquad \kappa = \frac{v_s}{c}\,\left|f'(h)\right|
+```
+
+a calculation done in 1+1 dimensions, which they expect to hold near the axis
+in 3+1. Taking that flux as given, stationary and arriving at the neck from
+outside, does the throat keep it out of the pocket? For a massless scalar
+$`\Phi = e^{-i\omega t}\,Y_{\ell m}\,u(l)/A`$ in the ultrastatic metric of the
+pocket, the radial equation is a one-dimensional scattering problem,
+
+```math
+u'' + \left[k^2 - V_\ell(l)\right] u = 0, \qquad V_\ell = \frac{\ell(\ell + 1)}{A^2} + \frac{A''}{A}, \qquad k = \frac{\omega}{c}
+```
+
+with primes in proper distance. The second term is the curvature of the throat;
+the first peaks there too, so only $`\ell \lt k A_\mathrm{min}`$ crosses it
+classically (left panel below). `waves.PocketWaves` carries Riccati–Bessel
+solutions across the transition region by RK4 and reads off, for each $\ell$,
+the single-pass transmission $\Gamma_\ell(k)$ and the interior intensity
+$1/N_\ell$ per unit incident intensity.
+
+But the pocket has no exit on the far side. In a steady state what enters must
+leave, and the interior intensity of each partial wave is a Fabry–Pérot comb
+whose average over one resonance is exactly
+
+```math
+\left\langle \frac{T}{\left|1 - \sqrt{1 - T}\,e^{i\varphi}\right|^2} \right\rangle_\varphi = \frac{T}{1 - (1 - T)} = 1
+```
+
+for any transmission $T$: an opaque throat makes the peaks higher, as
+$4/\Gamma_\ell$, and narrower, as $\Gamma_\ell$, but does not lower the average
+(centre panel). **In a steady state the pocket does not shield anywhere.** What
+the throat controls is time: each round trip $t_\mathrm{rt}$ lets in a fraction
+$\Gamma_\ell$ of what is missing, so mode $\ell$ fills in
+
+```math
+\tau_\ell = \frac{t_\mathrm{rt}}{-\ln(1 - \Gamma_\ell)} \;\approx\; \frac{t_\mathrm{rt}}{\Gamma_\ell}
+```
+
+At the centre only $\ell = 0$ reaches, it crosses the throat, and the crew is
+reached at once: the view from the centre of section 2 already showed every
+direction there opens onto the outside sky. Off centre, at proper distance
+$\rho$, the modes with $\ell \lt k A_\mathrm{min}$ fill within a few round trips
+and give the lit fraction rays predict, $`1 - \sqrt{1 - (A_\mathrm{min}/\rho)^2}`$;
+the rest tunnel in on times that grow exponentially with $\ell$ (right panel).
+For the default pocket ($\Xi = \kappa A_\mathrm{min}/2\pi \approx 3$ at $10c$)
+this is visible. For a bubble that satisfies the quantum inequalities,
+$\Xi \sim 10^{17}$, the ray result holds for any realistic time, and the wave
+calculation adds nothing to it.
+
+![Transmission of the throat, the cavity comb at the centre, and the filling off centre](images/readme/broeck_cavity.png)
+
 With the same shift wall, the pocket adds a thin shell carrying both signs of
 energy and holds more space than its coordinate size: at the default parameters
 10 m of coordinate radius hold 110 m of proper radius.
@@ -692,8 +756,8 @@ longer faster than light.
 
 ## Roadmap
 
-The next step, the Hawking radiation of the warp horizon seen through the
-throat of the pocket, and the acoustic analogue after it, live in
+The next step, an acoustic analogue of the pocket in a Bose–Einstein condensate,
+where the wave regime of the cavity is natural, lives in
 **[ROADMAP.md](ROADMAP.md)**.
 
 ## References
@@ -707,5 +771,10 @@ throat of the pocket, and the acoustic analogue after it, live in
 - S. Krasnikov, *Quantum inequalities do not forbid spacetime shortcuts*,
   Phys. Rev. D **67**, 104013 (2003)
 - S. Finazzi, S. Liberati & C. Barceló, Phys. Rev. D **79**, 124017 (2009)
+- W. A. Hiscock, *Quantum effects in the Alcubierre warp drive spacetime*,
+  Class. Quantum Grav. **14**, L183 (1997)
+- R. F. Rosato, S. Biswas & S. Chakraborty, *Greybody factors, reflectionless
+  scattering modes, and echoes of ultracompact horizonless objects*,
+  arXiv:2501.16433 (2025)
 - B. McMonigal, G. F. Lewis & P. O'Byrne, Phys. Rev. D **85**, 064024 (2012)
 - A. Bobrick & G. Martire, Class. Quantum Grav. **38**, 105009 (2021)

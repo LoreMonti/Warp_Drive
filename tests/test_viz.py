@@ -24,6 +24,7 @@ from warpdrive.viz import (                                 # noqa: E402
     plot_all,
     plot_curvature_bound,
     plot_energy_floor,
+    plot_pocket_cavity,
     plot_metric_comparison,
     plot_neck_scaling,
     plot_pocket_throat,
@@ -176,3 +177,11 @@ def test_curvature_bound_figure_renders(tmp_path):
     plot_curvature_bound(str(tmp_path / "bound.png"), orders=(10, 80),
                          n_inner=3, n_points=2000)
     assert (tmp_path / "bound.png").stat().st_size > 10_000
+
+
+def test_pocket_cavity_figure_renders(tmp_path):
+    from warpdrive import BroeckMetric
+    from warpdrive.constants import C_LIGHT
+    plot_pocket_cavity(BroeckMetric(speed=10.0 * C_LIGHT),
+                       str(tmp_path / "cavity.png"), n_steps=500, n_k=200)
+    assert (tmp_path / "cavity.png").stat().st_size > 10_000

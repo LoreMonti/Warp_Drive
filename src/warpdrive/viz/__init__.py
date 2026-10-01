@@ -3,6 +3,7 @@ from .animation import animate_flyby
 from .comparison import (
     plot_curvature_bound,
     plot_energy_floor,
+    plot_pocket_cavity,
     plot_metric_comparison,
     plot_neck_scaling,
     plot_pocket_throat,
@@ -28,6 +29,7 @@ __all__ = [
     "plot_neck_scaling",
     "plot_pocket_throat",
     "plot_energy_floor",
+    "plot_pocket_cavity",
     "plot_curvature_bound",
     "plot_quantum_inequality",
     "plot_sky",
