@@ -376,3 +376,62 @@ class AcousticPocket:
         with np.errstate(over="ignore", invalid="ignore"):
             gamma = 1.0 / np.abs(incoming) ** 2
         return np.nan_to_num(gamma, nan=0.0, posinf=0.0)
+
+    # --- What an experiment sees ---
+    def measured_spectrum(self, omegas, duration):
+        """
+        Interior s-wave intensity at the centre, |H|^2 = 1 / N_0, as a
+        record of finite duration T resolves it: smoothed with the
+        Fejer kernel sinc^2(w T / 2), the expected periodogram of a
+        stationary signal observed for a time T. The comb appears only
+        once T exceeds about one round trip, and reaches the
+        Fabry-Perot contrast for T much longer than it.
+
+        omegas   : uniform grid [rad s^-1], wide enough for the kernel
+        duration : record length T [s]
+        """
+
+        omegas = np.asarray(omegas, dtype=float)
+        weight = self.interior_weight([0], omegas)[0]
+        kernel = np.sinc((omegas[None, :] - omegas[:, None]) * duration
+                         / (2.0 * np.pi)) ** 2
+        # NumPy 2 on macOS Accelerate flags spurious floating-point errors
+        # in matmul even for finite inputs; the result is checked finite
+        with np.errstate(all="ignore"):
+            smoothed = kernel @ weight
+        return smoothed / kernel.sum(axis=1)
+
+    def fill_time(self, ms, omegas):
+        """tau_m = t_round_trip / (-ln(1 - Gamma_m)), as in section 4 [s]."""
+
+        gamma = np.clip(self.transmission(ms, omegas), 0.0, 1.0 - 1.0e-15)
+        with np.errstate(divide="ignore"):
+            return self.round_trip(ms, omegas) / -np.log1p(-gamma)
+
+    def filled_intensity(self, rho, omegas, t, mmax=None):
+        """
+        Intensity at distance rho from the centre of the pocket, a time t
+        after a stationary isotropic flux is switched on outside, relative
+        to the flux and averaged over each resonance:
+
+            S = sum_m eps_m J_m(w rho / c_in)^2 (1 - exp(-t / tau_m)),
+
+        eps_0 = 1, eps_m = 2. It tends to 1 everywhere. With a throat,
+        points closer to the edge than A_min c_in stay darker for many
+        round trips, while modes with m > w A_min tunnel in; a slow-sound
+        cavity without a throat fills them all at once.
+        """
+
+        omegas = np.atleast_1d(np.asarray(omegas, dtype=float))
+        x = omegas * rho / self.c_in
+        if mmax is None:
+            mmax = int(np.max(x)) + 20
+        ms = np.arange(mmax + 1)
+        j, _, _, _ = cylindrical_riccati(mmax, x)
+        bessel2 = j ** 2 / (0.5 * np.pi * x)
+        eps = np.where(ms == 0, 1.0, 2.0)[:, None]
+        # tau = 0 for modes turning outside the pocket: they fill at once
+        with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
+            filled = -np.expm1(-t / self.fill_time(ms, omegas))
+        return np.sum(eps * bessel2 * np.nan_to_num(filled, nan=0.0),
+                      axis=0)

@@ -193,3 +193,69 @@ def test_flux_is_conserved_and_the_cavity_fills_on_average():
     root = math.sqrt(1.0 - gamma)
     expected = ((1.0 + root) / (1.0 - root)) ** 2
     assert weight.max() / weight.min() == pytest.approx(expected, rel=0.05)
+
+
+@pytest.fixture(scope="module")
+def sharp():
+    """B = 2, a sharp edge: a throat with A_min half the edge radius."""
+
+    return AcousticPocket(_bubble(20.0, 1.0, 2.0), 1.0, 1.0, 2000)
+
+
+def test_comb_needs_about_two_round_trips(sharp):
+    """
+    Seen through a record of duration T, the comb is flat below one round
+    trip, has contrast above 2 after two, and tends to the Fabry-Perot
+    value for long records: the low-finesse cavity forms fast, which is
+    what lowers the requirement of section 5b from mu T / h ~ 25 to ~ 6.
+    """
+
+    trip = 2.0 * sharp.inner / sharp.c_in
+    omegas = np.linspace(0.005, 0.45, 2500)
+    band = (omegas > 0.075) & (omegas < 0.25)
+
+    def contrast(T):
+        spectrum = sharp.measured_spectrum(omegas, T)[band]
+        return spectrum.max() / spectrum.min()
+
+    assert contrast(0.5 * trip) < 1.1
+    assert 2.0 < contrast(2.0 * trip) < 2.5
+    weight = sharp.interior_weight([0], omegas)[0][band]
+    assert contrast(200.0 * trip) == pytest.approx(
+        weight.max() / weight.min(), rel=0.1)
+
+
+def test_throat_darkens_the_edge_of_the_pocket(sharp):
+    """
+    After two round trips, at 0.9 R~ a pocket behind a throat holds about
+    two thirds of the outside intensity; a slow-sound cavity with the same
+    B and a smooth edge, without a throat, is already full. Inside
+    A_min c_in from the centre there is no difference.
+    """
+
+    smooth = AcousticPocket(_bubble(20.0, 60.0, 2.0, order=3), 1.0, 1.0,
+                            2000)
+    trip = 2.0 * sharp.inner / sharp.c_in
+    omegas = np.linspace(0.125, 0.25, 20)
+
+    edge = sharp.filled_intensity(18.0, omegas, 2.0 * trip).mean()
+    later = sharp.filled_intensity(18.0, omegas, 100.0 * trip).mean()
+    assert 0.6 < edge < 0.75
+    assert edge < later < 1.0
+    assert smooth.filled_intensity(18.0, omegas, 2.0 * trip).mean() \
+        == pytest.approx(1.0, abs=0.02)
+    assert sharp.filled_intensity(10.0, omegas, 2.0 * trip).mean() \
+        == pytest.approx(1.0, abs=0.03)
+
+
+def test_round_trip_is_the_chord_of_the_flat_pocket(sharp):
+    """
+    A ray of angular momentum m / w crosses the flat pocket along a chord,
+    2 sqrt((R~/c_in)^2 - (m/w)^2) in optical length, i.e. in time.
+    """
+
+    edge = sharp.inner / sharp.c_in
+    trip = sharp.round_trip([0, 3, 100], [0.2])[:, 0]
+    assert trip[0] == pytest.approx(2.0 * edge)
+    assert trip[1] == pytest.approx(2.0 * math.sqrt(edge ** 2 - 15.0 ** 2))
+    assert trip[2] == 0.0
